@@ -123,14 +123,20 @@ export const login = async (req, res) => {
 // Register student
 export const registerStudent = async (req, res) => {
     try {
-        const { emailAddress, password, phoneNumber, aadharNumber, ...rest } = req.body;
-
-        // Additional validation
-        if (!emailAddress || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        const { firstName, lastName, email, password, gender } = req.body;
+        
+        // Validate input
+        if (!firstName || !lastName || !email || !password || !gender) {
+            return res.status(400).json({ message: 'All fields are required' });
         }
 
-        // Validate phone number format (10 digits)
+        // Validate gender
+        const validGenders = ['male', 'female', 'other'];
+        if (!validGenders.includes(gender.toLowerCase())) {
+            return res.status(400).json({ message: 'Invalid gender value' });
+        }
+
+        // Additional validation
         if (!/^\d{10}$/.test(phoneNumber)) {
             return res.status(400).json({ error: 'Invalid phone number format. Must be 10 digits' });
         }
@@ -143,14 +149,14 @@ export const registerStudent = async (req, res) => {
         // Check if student exists
         const existingStudent = await Registered_Students.findOne({ 
             $or: [
-                { emailAddress: emailAddress.toLowerCase() },
+                { emailAddress: email.toLowerCase() },
                 { aadharNumber },
                 { phoneNumber }
             ]
         });
 
         if (existingStudent) {
-            const field = existingStudent.emailAddress === emailAddress.toLowerCase() ? 'Email' :
+            const field = existingStudent.emailAddress === email.toLowerCase() ? 'Email' :
                          existingStudent.aadharNumber === aadharNumber ? 'Aadhar number' :
                          'Phone number';
             return res.status(409).json({ error: `${field} is already registered` });
@@ -158,11 +164,13 @@ export const registerStudent = async (req, res) => {
 
         // Create and save new student
         const newStudent = new Registered_Students({
-            emailAddress: emailAddress.toLowerCase(),
+            firstName,
+            lastName,
+            email: email.toLowerCase(),
             password,
+            gender: gender.toLowerCase(),
             phoneNumber,
             aadharNumber,
-            ...rest
         });
 
         await newStudent.save();

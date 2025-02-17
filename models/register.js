@@ -7,6 +7,16 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Full name is required'],
     trim: true
   },
+  gender: {
+    type: String,
+    required: [true, 'Gender is required'],
+    enum: {
+      values: ['male', 'female', 'other'],
+      message: 'Gender must be either male, female, or other'
+    },
+    lowercase: true,
+    trim: true
+  },
   fatherName: {
     type: String,
     required: [true, "Father's name is required"],

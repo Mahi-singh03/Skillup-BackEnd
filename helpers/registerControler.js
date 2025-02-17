@@ -79,3 +79,18 @@ export const register = async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
+const validateStudentData = (data) => {
+    const { firstName, lastName, email, password, gender } = data;
+    
+    if (!firstName || !lastName || !email || !password || !gender) {
+        throw new Error('All fields are required');
+    }
+
+    const validGenders = ['male', 'female', 'other'];
+    if (!validGenders.includes(gender.toLowerCase())) {
+        throw new Error('Invalid gender value');
+    }
+
+    // ... rest of existing validation ...
+};
