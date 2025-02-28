@@ -8,7 +8,7 @@ import studentRoutes from './routes/studentsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import { errorResponse } from './utils/responseHandler.js';
-import cloudinaryRoutes from './models/Cloudnary.js'
+import cloudinaryRoutes from './routes/Cloudnary.js'
 
 const app = express();
 
