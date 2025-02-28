@@ -1,6 +1,8 @@
-require('dotenv').config();
-const express = require('express');
-const fetch = require('node-fetch');
+import dotenv from 'dotenv';
+import express from 'express';
+import fetch from 'node-fetch';
+
+dotenv.config();
 const router = express.Router();
 
 const CLOUD_NAME = process.env.CLOUDINARY_NAME;
@@ -37,4 +39,4 @@ router.get('/cloudinary-images', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
