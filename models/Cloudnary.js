@@ -1,28 +1,17 @@
 import dotenv from 'dotenv';
 import express from 'express';
-import fetch from 'node-fetch';
 
 dotenv.config();
 const router = express.Router();
 
 const CLOUD_NAME = process.env.CLOUDINARY_NAME;
-const API_KEY = process.env.CLOUDINARY_API_KEY;
-const API_SECRET = process.env.CLOUDINARY_API_SECRET;
 const FOLDER_NAME = process.env.REACT_APP_CLOUDINARY_FOLDER_GALLERY;
 
 // Route to fetch Cloudinary images
 router.get('/cloudinary-images', async (req, res) => {
     try {
-        const authString = `${API_KEY}:${API_SECRET}`;
-        const base64Auth = Buffer.from(authString).toString('base64');
-
         const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/image?type=upload&prefix=${FOLDER_NAME}/`,
-            {
-                headers: {
-                    Authorization: `Basic ${base64Auth}`
-                }
-            }
+            `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${FOLDER_NAME}.json`
         );
 
         if (!response.ok) {
@@ -30,7 +19,9 @@ router.get('/cloudinary-images', async (req, res) => {
         }
 
         const data = await response.json();
-        const images = data.resources.map(img => img.secure_url);
+        const images = data.resources.map(img => 
+            `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${img.public_id}.${img.format}`
+        );
 
         res.json({ images });
     } catch (error) {
