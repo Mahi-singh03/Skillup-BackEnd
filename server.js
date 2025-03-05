@@ -9,6 +9,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import { errorResponse } from './utils/responseHandler.js';
 import cloudinaryRoutes from './routes/Cloudnary.js'
+import onlineCourseRoutes from './routes/OnlineCourse.js'
+import studentVarification from './routes/StudentVarification.js';
 
 const app = express();
 
@@ -41,8 +43,8 @@ app.use((req, res, next) => {
 app.use('/api/students', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
-
-
+app.use('/api/online-course', onlineCourseRoutes);
+app.use('/api/students-Varification', studentVarification);
 app.use('/api', cloudinaryRoutes);
 
 // 404 handler
