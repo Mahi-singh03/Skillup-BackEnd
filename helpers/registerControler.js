@@ -92,5 +92,5 @@ const validateStudentData = (data) => {
         throw new Error('Invalid gender value');
     }
 
-    // ... rest of existing validation ...
+   
 };

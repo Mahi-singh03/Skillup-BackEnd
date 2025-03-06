@@ -21,6 +21,7 @@ router.post('/verify-student', async (req, res) => {
       address: student.address,
       course: student.selectedCourse,
       courseDuration: student.courseDuration,
+      cretificate: student.Cretificate
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
