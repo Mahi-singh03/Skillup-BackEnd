@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 const staffSchema = new mongoose.Schema({
   Name: String,
-  StaffID: String,
-  JoinningData: String,
+  StaffID: Number,
+  JoinningData: Date,
   Designation: String,
-  DOB: String,
-  LeavingDate: String,
+  DOB: Date,
+  LeavingDate: Date,
   FatherName: String,
   MotherName: String,
   Address: String,
