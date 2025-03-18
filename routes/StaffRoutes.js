@@ -1,5 +1,5 @@
 import express from 'express';
-import Staff from '../models/StaffVarification';
+import Staff from '../models/StaffVarification.js';
 
 const router = express.Router();
 
