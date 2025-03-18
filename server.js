@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import config from './config/config.js';
 import connectDB from './lib/connectiondb.js';
 import studentRoutes from './routes/studentsRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import { errorResponse } from './utils/responseHandler.js';
 import cloudinaryRoutes from './routes/Cloudnary.js'
@@ -43,7 +42,6 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/students', studentRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/online-course', onlineCourseRoutes);
 app.use('/api/students', studentVarification);
