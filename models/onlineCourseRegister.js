@@ -40,4 +40,4 @@ const onlineCourseSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-export default mongoose.model('OnlineCourseRegistries', onlineCourseSchema);
+export default mongoose.model('Online Course Registried student', onlineCourseSchema);
