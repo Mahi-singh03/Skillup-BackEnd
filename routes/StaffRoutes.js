@@ -23,15 +23,15 @@ router.post('/', async (req, res) => {
 // Get Staff by ID and DOB
 router.get('/', async (req, res) => {
   try {
-    const { staffId, dob } = req.query;
+    const { staffId, DOB } = req.query;
     
-    if (!staffId || !dob) {
+    if (!staffId || !DOB) {
       return res.status(400).json({ message: 'StaffID and DOB are required' });
     }
 
     const staff = await Staff.findOne({
       StaffID: parseInt(staffId),
-      DOB: new Date(dob)
+      DOB: new Date(DOB)
     });
 
     if (!staff) {
