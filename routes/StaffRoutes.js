@@ -21,29 +21,66 @@ router.post('/', async (req, res) => {
 });
 
 // Get Staff by ID and DOB
-router.get('/', async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
-    const { staffId, DOB } = req.query;
+    const { staffID, dob } = req.query;
     
-    if (!staffId || !DOB) {
-      return res.status(400).json({ message: 'StaffID and DOB are required' });
+    // Validate required fields
+    if (!staffID || !dob) {
+      return res.status(400).json({ 
+        message: 'Both Staff ID and Date of Birth are required' 
+      });
     }
 
+    // Convert to numbers/dates with validation
+    const numericStaffID = parseInt(staffID, 10);
+    if (isNaN(numericStaffID)) {
+      return res.status(400).json({ 
+        message: 'Invalid Staff ID format' 
+      });
+    }
+
+    const dobDate = new Date(dob);
+    if (isNaN(dobDate.getTime())) {
+      return res.status(400).json({ 
+        message: 'Invalid Date of Birth format' 
+      });
+    }
+
+    // Find staff member with date range for DOB
     const staff = await Staff.findOne({
-      StaffID: parseInt(staffId),
-      DOB: new Date(DOB)
-    });
+      StaffID: numericStaffID,
+      DOB: {
+        $gte: new Date(dobDate.setHours(0, 0, 0, 0)),
+        $lte: new Date(dobDate.setHours(23, 59, 59, 999))
+      }
+    }).select('-__v -_id'); // Exclude unnecessary fields
 
     if (!staff) {
-      return res.status(404).json({ message: 'Staff not found' });
+      return res.status(404).json({ 
+        message: 'No staff member found with these credentials' 
+      });
     }
 
-    res.json(staff);
+    // Convert Mongoose document to plain object and format response
+    const staffData = staff.toObject({ virtuals: true });
+    staffData.id = staffData._id;
+    delete staffData._id;
+
+    res.json(staffData);
+
   } catch (error) {
+    console.error('Verification error:', error);
+    
     if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid input format' });
+      return res.status(400).json({ 
+        message: 'Invalid data format' 
+      });
     }
-    res.status(500).json({ message: 'Server error' });
+    
+    res.status(500).json({ 
+      message: 'Server error during verification' 
+    });
   }
 });
 
