@@ -20,67 +20,41 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get Staff by ID and DOB
+// Verify Staff by StaffID and DOB
 router.get('/verify', async (req, res) => {
   try {
-    const { staffID, dob } = req.query;
-    
-    // Validate required fields
-    if (!staffID || !dob) {
-      return res.status(400).json({ 
-        message: 'Both Staff ID and Date of Birth are required' 
-      });
+    const { staffId, dob } = req.query;
+
+    if (!staffId || !dob) {
+      return res.status(400).json({ message: 'StaffID and DOB are required' });
     }
 
-    // Convert to numbers/dates with validation
-    const numericStaffID = parseInt(staffID, 10);
-    if (isNaN(numericStaffID)) {
-      return res.status(400).json({ 
-        message: 'Invalid Staff ID format' 
-      });
+    const staffIdNum = parseInt(staffId, 10);
+    if (isNaN(staffIdNum)) {
+      return res.status(400).json({ message: 'Invalid StaffID format' });
     }
 
     const dobDate = new Date(dob);
     if (isNaN(dobDate.getTime())) {
-      return res.status(400).json({ 
-        message: 'Invalid Date of Birth format' 
-      });
+      return res.status(400).json({ message: 'Invalid DOB format' });
     }
 
-    // Find staff member with date range for DOB
     const staff = await Staff.findOne({
-      StaffID: numericStaffID,
-      DOB: {
-        $gte: new Date(dobDate.setHours(0, 0, 0, 0)),
-        $lte: new Date(dobDate.setHours(23, 59, 59, 999))
-      }
-    }).select('-__v -_id'); // Exclude unnecessary fields
+      StaffID: staffIdNum,
+      DOB: dobDate
+    }).lean();
 
     if (!staff) {
-      return res.status(404).json({ 
-        message: 'No staff member found with these credentials' 
-      });
+      return res.status(404).json({ message: 'Staff not found' });
     }
 
-    // Convert Mongoose document to plain object and format response
-    const staffData = staff.toObject({ virtuals: true });
-    staffData.id = staffData._id;
-    delete staffData._id;
-
+    // Remove MongoDB internal fields
+    const { _id, __v, ...staffData } = staff;
+    
     res.json(staffData);
 
   } catch (error) {
-    console.error('Verification error:', error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: 'Invalid data format' 
-      });
-    }
-    
-    res.status(500).json({ 
-      message: 'Server error during verification' 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
