@@ -1,3 +1,4 @@
+// Backend (userModel.js)
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -57,12 +58,16 @@ const userSchema = new mongoose.Schema({
   selectedCourse: {
     type: String,
     required: [true, 'Course selection is required'],
-    enum: ['HTML, CSS, JS', 'React', 'MERN FullStack', 'Autocad', 'CorelDRAW', 'Tally', 'Premier Pro', 'Wordpress', 'Computer Course', 'MS Office', 'PTE']
+    enum: ['HTML, CSS, JS', 'React', 'MERN FullStack', 'Autocad', 'CorelDRAW', 'Tally', 'Premier Pro', 'WordPress', 'Computer Course', 'MS Office', 'PTE']
   },
   courseDuration: {
     type: String,
     required: [true, 'Course duration is required'],
     enum: ['3 months', '6 months', '1 year']
+  },
+  certificationTitle: {
+    type: String,
+    trim: true
   },
   address: {
     type: String,
@@ -79,12 +84,47 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
-  Cretificate: {
-    type : Boolean,
-    require : false,
-    default : false
+  certificate: {
+    type: Boolean,
+    required: false,
+    default: false
   }
 }, { timestamps: true });
+
+// Generate certification title before saving
+userSchema.pre('save', async function(next) {
+  if (this.isModified('selectedCourse') || this.isModified('courseDuration')) {
+    if (this.selectedCourse === 'Computer Course') {
+      switch (this.courseDuration) {
+        case '3 months':
+          this.certificationTitle = 'CERTIFICATION IN COMPUTER APPLICATION';
+          break;
+        case '6 months':
+          this.certificationTitle = 'DIPLOMA IN COMPUTER APPLICATION';
+          break;
+        case '1 year':
+          this.certificationTitle = 'ADVANCE DIPLOMA IN COMPUTER APPLICATION';
+          break;
+        default:
+          this.certificationTitle = this.selectedCourse;
+      }
+    } else if (this.selectedCourse === 'Tally') {
+      switch (this.courseDuration) {
+        case '3 months':
+          this.certificationTitle = 'CERTIFICATION IN COMPUTER ACCOUNTANCY';
+          break;
+        case '6 months':
+          this.certificationTitle = 'DIPLOMA IN COMPUTER ACCOUNTANCY';
+          break;
+        default:
+          this.certificationTitle = this.selectedCourse;
+      }
+    } else {
+      this.certificationTitle = this.selectedCourse;
+    }
+  }
+  next();
+});
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
@@ -95,20 +135,17 @@ userSchema.pre('save', async function(next) {
 
 // Auto-generate Roll Number before saving
 userSchema.pre('save', async function(next) {
-  if (this.rollNo) return next(); // Skip if rollNo already exists
+  if (this.rollNo) return next();
 
   const currentYear = new Date().getFullYear();
-  
-  // Fix: Change 'User' to 'Registered_Students'
   const lastUser = await mongoose.model('Registered_Students').findOne().sort({ rollNo: -1 });
 
   let newRollNo;
-  if (lastUser && lastUser.rollNo.startsWith(currentYear.toString())) {
-    // Ensure leading zeros are preserved
+  if (lastUser && lastUser.rollNo && lastUser.rollNo.startsWith(currentYear.toString())) {
     const lastRollNumber = parseInt(lastUser.rollNo.slice(4), 10);
     newRollNo = `${currentYear}${String(lastRollNumber + 1).padStart(3, '0')}`;
   } else {
-    newRollNo = `${currentYear}001`; // Start fresh if no roll numbers exist
+    newRollNo = `${currentYear}001`;
   }
 
   this.rollNo = newRollNo;
