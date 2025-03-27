@@ -11,7 +11,7 @@ import cloudinaryRoutes from './routes/Cloudnary.js'
 import onlineCourseRoutes from './routes/OnlineCourse.js'
 import studentVarification from './routes/StudentVarification.js';
 import staffRoutes from "./routes/StaffRoutes.js"
-
+import adminRoutes from './routes/Admin.js';
 
 const app = express();
 
@@ -47,6 +47,7 @@ app.use('/api/online-course', onlineCourseRoutes);
 app.use('/api/students', studentVarification);
 app.use('/api', cloudinaryRoutes);
 app.use('/api/staff', staffRoutes)
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
