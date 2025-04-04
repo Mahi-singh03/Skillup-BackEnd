@@ -69,6 +69,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+
   address: {
     type: String,
     required: [true, 'Address is required'],
@@ -84,10 +85,47 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters long']
   },
+
+
   certificate: {
     type: Boolean,
     required: false,
     default: false
+  },
+  
+  
+  examResults: [{
+    subjectCode: {
+      type: String,
+      required: true
+    },
+    subjectName: {
+      type: String,
+      required: true
+    },
+    theoryMarks: {
+      type: Number,
+      default: null
+    },
+    practicalMarks: {
+      type: Number,
+      default: null
+    },
+    totalMarks: {
+      type: Number,
+      default: null
+    },
+    examDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+
+  finalGrade: {
+    type: String,
+    enum: ['A', 'B', 'C', 'D', 'F', 'Pending'],
+    default: 'Pending'
   }
 }, { timestamps: true });
 
