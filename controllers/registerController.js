@@ -120,6 +120,8 @@ export const login = async (req, res) => {
     }
 };
 
+
+
 // Register student
 export const registerStudent = async (req, res) => {
     try {
@@ -207,3 +209,29 @@ export const registerStudent = async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }; 
+
+
+
+export const getStudentByRollNo = async (req, res) => {
+    try {
+        const { rollNo } = req.params;
+
+        if (!rollNo) {
+            return res.status(400).json({ error: 'Roll number is required' });
+        }
+
+        const student = await Registered_Students.findOne({ rollNo });
+
+        if (!student) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+
+        res.status(200).json({
+            message: 'Student details retrieved successfully',
+            student: student.toJSON(),
+        });
+    } catch (error) {
+        console.error('Get student by roll number error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
