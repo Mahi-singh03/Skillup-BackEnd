@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getStudentByRollNo} from '../controllers/registerController.js';
+import { register, login, getStudentByRollNo, updateStudentPhoto} from '../controllers/registerController.js';
 
 const router = express.Router();
 
@@ -14,5 +14,7 @@ router.post('/student/register', register);
 router.post('/student/login', login);
 
 router.get('/rollno/:rollNo', getStudentByRollNo);
+router.post('/student/photo', updateStudentPhoto);
+
 
 export default router;

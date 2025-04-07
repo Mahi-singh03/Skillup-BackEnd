@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Full name is required'],
     trim: true
   },
+  photo: {
+    type: Buffer, 
+    contentType: String, 
+    required: false
+  },
   gender: {
     type: String,
     required: [true, 'Gender is required'],
