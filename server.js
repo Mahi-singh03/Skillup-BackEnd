@@ -12,7 +12,7 @@ import onlineCourseRoutes from './routes/OnlineCourse.js'
 import studentVarification from './routes/StudentVarification.js';
 import staffRoutes from "./routes/StaffRoutes.js"
 import adminRoutes from './routes/Admin.js';
-const certificateRoutes = require('./routes/certificateRoutes');
+import certificateRoutes from './routes/certificateRoutes.js';
 
 const app = express();
 

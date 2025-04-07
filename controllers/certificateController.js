@@ -1,7 +1,13 @@
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
-const User = require('../models/userModel');
+import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import User from '../models/onlineCourseRegister.js';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const certificateTemplates = {
   'CERTIFICATION IN COMPUTER APPLICATION': {
@@ -48,7 +54,7 @@ const subjectDetails = {
   'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
 };
 
-exports.generateCertificate = async (req, res) => {
+export const generateCertificate = async (req, res) => {
   const { rollNo } = req.params;
 
   try {
@@ -62,14 +68,21 @@ exports.generateCertificate = async (req, res) => {
       return res.status(400).json({ message: 'Certificate template not found' });
     }
 
+    // Create a temporary directory if it doesn't exist
+    const tempDir = path.join(__dirname, '../temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
     // Generate Completion Certificate
     const completionDoc = new PDFDocument({ size: [612, 792] }); // A4 size
     const completionFileName = `completion_certificate_${rollNo}.pdf`;
-    const completionStream = fs.createWriteStream(completionFileName);
+    const completionFilePath = path.join(tempDir, completionFileName);
+    const completionStream = fs.createWriteStream(completionFilePath);
     completionDoc.pipe(completionStream);
 
     // Add completion certificate image as background
-    const completionImagePath = path.join(__dirname, '../public/certificate_templates', 'completion_certificate.png');
+    const completionImagePath = path.join(__dirname, '../public/certificate_templates', template.template);
     completionDoc.image(completionImagePath, 0, 0, { width: 612 });
 
     // Overlay dynamic text (adjust coordinates based on your image)
@@ -85,7 +98,8 @@ exports.generateCertificate = async (req, res) => {
     // Generate Statement of Marks
     const marksDoc = new PDFDocument({ size: [612, 792] });
     const marksFileName = `statement_of_marks_${rollNo}.pdf`;
-    const marksStream = fs.createWriteStream(marksFileName);
+    const marksFilePath = path.join(tempDir, marksFileName);
+    const marksStream = fs.createWriteStream(marksFilePath);
     marksDoc.pipe(marksStream);
 
     // Add statement of marks image as background
@@ -110,7 +124,7 @@ exports.generateCertificate = async (req, res) => {
       const subject = subjectDetails[subjectCode];
       const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
       const marksObtained = examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0;
-      marksDoc.text(`${subjectCode}   ${subject.name}   ${subject.theory + subject.practical}   ${Math.round((subject.theory + subject.practical) * 0.3)}   ${marksObtained}`, 50, yPos);
+      marksDoc.text(`${subjectCode.padEnd(15)} ${subject.name.padEnd(30)} ${(subject.theory + subject.practical).toString().padEnd(15)} ${Math.round((subject.theory + subject.practical) * 0.3).toString().padEnd(15)} ${marksObtained}`, 50, yPos);
       yPos += 20;
     });
 
@@ -126,34 +140,43 @@ exports.generateCertificate = async (req, res) => {
 
     marksDoc.end();
 
-    // Send both certificates individually
-    completionStream.on('finish', () => {
-      marksStream.on('finish', () => {
-        res.setHeader('Content-Type', 'application/json');
-        res.json({
-          completionUrl: `/download/${completionFileName}`,
-          marksUrl: `/download/${marksFileName}`,
-        });
-      });
+    // Wait for both files to be generated
+    await new Promise((resolve) => completionStream.on('finish', resolve));
+    await new Promise((resolve) => marksStream.on('finish', resolve));
+
+    // Send response with download links
+    res.json({
+      completionUrl: `/api/certificates/download/${completionFileName}`,
+      marksUrl: `/api/certificates/download/${marksFileName}`,
     });
 
-    // Cleanup files after sending (optional, adjust based on your needs)
-    completionStream.on('finish', () => fs.unlinkSync(completionFileName));
-    marksStream.on('finish', () => fs.unlinkSync(marksFileName));
-
   } catch (error) {
-    res.status(500).json({ message: 'Error generating certificates', error });
+    console.error('Error generating certificates:', error);
+    res.status(500).json({ message: 'Error generating certificates', error: error.message });
   }
 };
 
 // Add a download endpoint to serve the files
-exports.downloadFile = (req, res) => {
+export const downloadFile = (req, res) => {
   const fileName = req.params.fileName;
-  const filePath = path.join(__dirname, '..', fileName);
-  res.download(filePath, (err) => {
-    if (err) console.error(err);
-    fs.unlinkSync(filePath); // Clean up file after download
+  const filePath = path.join(__dirname, '../temp', fileName);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error('Error downloading file:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error downloading file' });
+      }
+    }
+    // Optionally delete the file after download
+    try {
+      fs.unlinkSync(filePath);
+    } catch (unlinkErr) {
+      console.error('Error deleting file:', unlinkErr);
+    }
   });
 };
-
-module.exports = { generateCertificate, downloadFile };

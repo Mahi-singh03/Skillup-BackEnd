@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const certificateController = require('../controllers/certificateController');
+import { generateCertificate, downloadFile } from '../controllers/certificateController.js';
 
-router.get('/generate-certificate/:rollNo', certificateController.generateCertificate);
-router.get('/download/:fileName', certificateController.downloadFile);
+router.get('/generate-certificate/:rollNo', generateCertificate);
+router.get('/download/:fileName', downloadFile);
 
-module.exports = router;
+export default router;
