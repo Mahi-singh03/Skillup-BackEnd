@@ -65,7 +65,7 @@ app.use((err, req, res, next) => {
   );
 });
 
-// Start server
+
 const startServer = async () => {
   try {
     await connectDB();
