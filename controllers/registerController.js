@@ -33,7 +33,7 @@ const upload = multer({
   }
 }).single('photo');
 
-export const register = async (req, res) => {
+const register = async (req, res) => {
   upload(req, res, async (err) => {
     try {
       if (err) {
@@ -142,7 +142,7 @@ export const register = async (req, res) => {
   });
 };
 
-export const login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { emailAddress, password } = req.body;
 
@@ -193,7 +193,7 @@ export const login = async (req, res) => {
   }
 };
 
-export const getStudentByRollNo = async (req, res) => {
+const getStudentByRollNo = async (req, res) => {
   try {
     const { rollNo } = req.params;
 
@@ -224,7 +224,7 @@ export const getStudentByRollNo = async (req, res) => {
   }
 };
 
-export const updateStudentPhoto = async (req, res) => {
+const updateStudentPhoto = async (req, res) => {
   upload(req, res, async (err) => {
     try {
       if (err) {

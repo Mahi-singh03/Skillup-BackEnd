@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getStudentByRollNo, updateStudentPhoto} from '../controllers/registerController.js';
+import { register, login, getStudentByRollNo, updateStudentPhoto, } from '../controllers/registerController.js';
 
 const router = express.Router();
 
