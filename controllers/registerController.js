@@ -2,13 +2,28 @@ import Registered_Students from '../models/register.js';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 
-// Configure multer for photo upload
+// JWT Middleware
+const protect = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) return res.status(401).json({ error: 'Not authorized, no token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, email }
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Not authorized, token invalid' });
+  }
+};
+
+// Multer Config
 const storage = multer.memoryStorage();
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 50 * 1024 // 50KB
-  },
+  storage,
+  limits: { fileSize: 50 * 1024 }, // 50KB
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.mimetype)) {
@@ -213,70 +228,45 @@ export const updateStudentPhoto = async (req, res) => {
   upload(req, res, async (err) => {
     try {
       if (err) {
-        console.error('Multer error in updateStudentPhoto:', err);
+        console.error('Multer error:', err);
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({ error: 'File size must not exceed 50KB' });
         }
         return res.status(400).json({ error: err.message });
       }
 
-      // Validate file upload
       if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+        return res.status(400).json({ error: 'No photo uploaded' });
       }
 
-      if (!req.file.buffer) {
-        return res.status(400).json({ error: 'File buffer is missing' });
+      const { rollNo } = req.body;
+      if (!rollNo) {
+        return res.status(400).json({ error: 'Roll number is required' });
       }
 
-      if (!req.file.mimetype) {
-        return res.status(400).json({ error: 'File type is missing' });
-      }
-
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ error: 'Only JPEG, PNG, and JPG files are allowed' });
-      }
-
-      // Validate authenticated user
-      if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'Unauthorized: No user data found' });
-      }
-
-      // Find student
-      const student = await Registered_Students.findById(req.user.id);
+      const student = await Registered_Students.findOne({ rollNo });
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
 
-      // Update photo
       student.photo = req.file.buffer;
       student.contentType = req.file.mimetype;
-      
-      try {
-        await student.save();
-        res.status(200).json({
-          message: 'Photo updated successfully',
-          photo: {
-            contentType: req.file.mimetype,
-            size: req.file.size
-          }
-        });
-      } catch (saveError) {
-        console.error('Error saving student photo:', saveError);
-        return res.status(500).json({ 
-          error: 'Failed to save photo', 
-          details: saveError.message 
-        });
-      }
 
+      await student.save();
+
+      return res.status(200).json({
+        message: 'Photo updated successfully',
+        photo: {
+          contentType: req.file.mimetype,
+          size: req.file.size,
+        },
+      });
     } catch (error) {
       console.error('Photo update error:', error);
-      res.status(500).json({ 
-        error: 'Internal Server Error', 
-        details: error.message 
-      });
+      return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
 };
+
+// Export with protection middleware
+export { register, login, getStudentByRollNo, updateStudentPhoto, protect };
