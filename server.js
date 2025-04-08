@@ -49,7 +49,7 @@ app.use('/api/students', studentVarification);
 app.use('/api', cloudinaryRoutes);
 app.use('/api/staff', staffRoutes)
 app.use('/api/admin', adminRoutes);
-app.use('/api/cerificate', certificateRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // 404 handler
 app.use((req, res) => {
