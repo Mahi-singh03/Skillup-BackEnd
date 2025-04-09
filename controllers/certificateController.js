@@ -52,6 +52,7 @@ const subjectDetails = {
   'CS-08': { name: 'Manual Accounting', theory: 40, practical: 60 },
   'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
 };
+
 export const generateCertificate = async (req, res) => {
   const { rollNo } = req.params;
 
@@ -66,44 +67,49 @@ export const generateCertificate = async (req, res) => {
       return res.status(400).json({ message: 'Invalid certification title' });
     }
 
+    const tempDir = path.join(__dirname, '../temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
     // Generate Completion Certificate
-    const completionDoc = new PDFDocument({ size: [792, 612], layout: 'landscape' });
-    const completionBuffers = [];
-    completionDoc.on('data', (chunk) => completionBuffers.push(chunk));
-    const completionPromise = new Promise((resolve) => completionDoc.on('end', () => resolve(Buffer.concat(completionBuffers))));
+    const completionFileName = `completion_certificate_${rollNo}.pdf`;
+    const completionFilePath = path.join(tempDir, completionFileName);
+    const completionDoc = new PDFDocument({ size: [612, 792] });
+    completionDoc.pipe(fs.createWriteStream(completionFilePath));
 
     const completionImagePath = path.join(__dirname, '../public/certificate_templates', template.template);
-    completionDoc.image(completionImagePath, 0, 0, { width: 792 });
+    completionDoc.image(completionImagePath, 0, 0, { width: 612 });
     completionDoc.fontSize(12).fillColor('#000000');
-    completionDoc.text(`This is to certify that ${user.fullName}`, 0, 200, { align: 'center', width: 792 });
-    completionDoc.text(`Roll No: ${user.rollNo}`, 0, 220, { align: 'center', width: 792 });
-    completionDoc.text(`Course Duration: ${user.courseDuration}`, 0, 240, { align: 'center', width: 792 });
-    completionDoc.text(`Certification Title: ${user.certificationTitle}`, 0, 260, { align: 'center', width: 792 });
-    completionDoc.text('Verify your result at www.skillupinstitute.co.in', 0, 280, { align: 'center', width: 792 });
+    completionDoc.text(`This is to certify that ${user.fullName}`, 200, 300, { align: 'center' });
+    completionDoc.text(`Roll No: ${user.rollNo}`, 200, 320, { align: 'center' });
+    completionDoc.text(`Course Duration: ${user.courseDuration}`, 200, 340, { align: 'center' });
+    completionDoc.text(`Certification Title: ${user.certificationTitle}`, 200, 360, { align: 'center' });
+    completionDoc.text('Verify your result at www.skillupinstitute.co.in', 200, 380, { align: 'center' });
     completionDoc.end();
 
     // Generate Statement of Marks
-    const marksDoc = new PDFDocument({ size: [792, 612], layout: 'landscape' });
-    const marksBuffers = [];
-    marksDoc.on('data', (chunk) => marksBuffers.push(chunk));
-    const marksPromise = new Promise((resolve) => marksDoc.on('end', () => resolve(Buffer.concat(marksBuffers))));
+    const marksFileName = `statement_of_marks_${rollNo}.pdf`;
+    const marksFilePath = path.join(tempDir, marksFileName);
+    const marksDoc = new PDFDocument({ size: [612, 792] });
+    marksDoc.pipe(fs.createWriteStream(marksFilePath));
 
     const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
-    marksDoc.image(marksImagePath, 0, 0, { width: 792 });
+    marksDoc.image(marksImagePath, 0, 0, { width: 612 });
     marksDoc.fontSize(12).fillColor('#000000');
-    marksDoc.text(`Roll No: ${user.rollNo}`, 0, 80, { align: 'center', width: 792 });
-    marksDoc.text(`Candidate's Name: ${user.fullName}`, 0, 100, { align: 'center', width: 792 });
-    marksDoc.text(`Father's Name: ${user.fatherName}`, 0, 120, { align: 'center', width: 792 });
-    marksDoc.text(`Mother's Name: ${user.motherName}`, 0, 140, { align: 'center', width: 792 });
+    marksDoc.text(`Roll No: ${user.rollNo}`, 200, 100, { align: 'center' });
+    marksDoc.text(`Candidate's Name: ${user.fullName}`, 200, 120, { align: 'center' });
+    marksDoc.text(`Father's Name: ${user.fatherName}`, 200, 140, { align: 'center' });
+    marksDoc.text(`Mother's Name: ${user.motherName}`, 200, 160, { align: 'center' });
 
-    let yPos = 180;
+    let yPos = 200;
     marksDoc.font('Helvetica-Bold').text('Subject Code   Subject                     Max Marks   Min Marks   Obtained', 50, yPos);
     yPos += 20;
-    marksDoc.moveTo(50, yPos).lineTo(742, yPos).stroke();
+    marksDoc.moveTo(50, yPos).lineTo(550, yPos).stroke();
     yPos += 20;
 
     const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
-      const subject = subiectDetails[subjectCode];
+      const subject = subjectDetails[subjectCode];
       const examResult = user.examResults.find((r) => r.subjectCode === subjectCode);
       const marksObtained = examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0;
       marksDoc.text(
@@ -119,23 +125,46 @@ export const generateCertificate = async (req, res) => {
       return sum + marksObtained;
     }, 0);
 
-    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 0, yPos + 20, {
+    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 200, yPos + 20, {
       align: 'center',
-      width: 792,
     });
-    marksDoc.text('Verify your result at www.skillupinstitute.co.in', 0, yPos + 40, { align: 'center', width: 792 });
+    marksDoc.text('Verify your result at www.skillupinstitute.co.in', 200, yPos + 40, { align: 'center' });
     marksDoc.end();
 
-    // Wait for both PDFs to finish
-    const [completionBuffer, marksBuffer] = await Promise.all([completionPromise, marksPromise]);
+    // Wait for files to finish writing
+    await Promise.all([
+      new Promise((resolve) => completionDoc.on('end', resolve)),
+      new Promise((resolve) => marksDoc.on('end', resolve)),
+    ]);
 
-    // Send Base64-encoded PDFs to client
     res.json({
-      completionPdf: completionBuffer.toString('base64'),
-      marksPdf: marksBuffer.toString('base64'),
+      completionUrl: `/api/certificates/download/${completionFileName}`,
+      marksUrl: `/api/certificates/download/${marksFileName}`,
     });
   } catch (error) {
-    console.error('Error generating certificate preview:', error);
+    console.error('Error generating certificates:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
+};
+
+export const downloadFile = (req, res) => {
+  const { fileName } = req.params;
+  const filePath = path.join(__dirname, '../temp', fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error downloading file' });
+      }
+      console.error('Download error:', err);
+    }
+    // Clean up file after download
+    fs.unlink(filePath, (unlinkErr) => {
+      if (unlinkErr) console.error('Error deleting file:', unlinkErr);
+    });
+  });
 };
