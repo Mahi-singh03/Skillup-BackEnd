@@ -8,6 +8,56 @@ import User from '../models/register.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+
+// Add these configurations ABOVE the coordinates object
+const certificateTemplates = {
+  'CERTIFICATION IN COMPUTER APPLICATION': {
+    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04'],
+    maxMarks: 240,
+    minMarks: 72,
+    template: 'completion_certificate.png',
+  },
+  'DIPLOMA IN COMPUTER APPLICATION': {
+    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04', 'CS-05'],
+    maxMarks: 300,
+    minMarks: 90,
+    template: 'completion_certificate.png',
+  },
+  'ADVANCE DIPLOMA IN COMPUTER APPLICATION': {
+    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-05', 'CS-06'],
+    maxMarks: 300,
+    minMarks: 90,
+    template: 'completion_certificate.png',
+  },
+  'CERTIFICATION IN COMPUTER ACCOUNTANCY': {
+    subjects: ['CS-01', 'CS-02', 'CS-07', 'CS-08'],
+    maxMarks: 240,
+    minMarks: 72,
+    template: 'completion_certificate.png',
+  },
+  'DIPLOMA IN COMPUTER ACCOUNTANCY': {
+    subjects: ['CS-01', 'CS-02', 'CS-07', 'CS-08', 'CS-09'],
+    maxMarks: 300,
+    minMarks: 90,
+    template: 'completion_certificate.png',
+  },
+};
+
+const subjectDetails = {
+  'CS-01': { name: 'Basic Computer', theory: 100, practical: 0 },
+  'CS-02': { name: 'Windows Application: MS Office', theory: 40, practical: 60 },
+  'CS-03': { name: 'Operating System', theory: 40, practical: 60 },
+  'CS-04': { name: 'Web Publisher: Internet Browsing', theory: 40, practical: 60 },
+  'CS-05': { name: 'COMPUTER ACCOUNTANCY: TALLY', theory: 40, practical: 60 },
+  'CS-06': { name: 'DESKTOP PUBLISHING: PHOTOSHOP', theory: 40, practical: 60 },
+  'CS-07': { name: 'Computerized Accounting With Tally', theory: 40, practical: 60 },
+  'CS-08': { name: 'Manual Accounting', theory: 40, practical: 60 },
+  'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
+};
+
+
+
+
 // Configuration constants
 const LAYOUT = {
   pageSize: [842, 595], // A4 landscape
