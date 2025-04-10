@@ -75,37 +75,55 @@ export const generateCertificate = async (req, res) => {
     // Generate Completion Certificate
     const completionFileName = `completion_certificate_${rollNo}.pdf`;
     const completionFilePath = path.join(tempDir, completionFileName);
-    const completionDoc = new PDFDocument({ size: [612, 792] });
+    const completionDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' }); // A4 landscape
     completionDoc.pipe(fs.createWriteStream(completionFilePath));
 
     const completionImagePath = path.join(__dirname, '../public/certificate_templates', template.template);
-    completionDoc.image(completionImagePath, 0, 0, { width: 612 });
-    completionDoc.fontSize(12).fillColor('#000000');
-    completionDoc.text(`This is to certify that ${user.fullName}`, 200, 300, { align: 'center' });
-    completionDoc.text(`Roll No: ${user.rollNo}`, 200, 320, { align: 'center' });
-    completionDoc.text(`Course Duration: ${user.courseDuration}`, 200, 340, { align: 'center' });
-    completionDoc.text(`Certification Title: ${user.certificationTitle}`, 200, 360, { align: 'center' });
-    completionDoc.text('Verify your result at www.skillupinstitute.co.in', 200, 380, { align: 'center' });
+    completionDoc.image(completionImagePath, 0, 0, { width: 842 }); // Scale to A4 width
+
+    // Add student photo (assuming photo path is stored in user.photo)
+    if (user.photo) {
+      const photoPath = path.join(__dirname, '../public/photos', user.photo); // Adjust path as per your storage
+      if (fs.existsSync(photoPath)) {
+        completionDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
+      }
+    }
+
+    completionDoc.fontSize(14).fillColor('#000000');
+    completionDoc.text(`This is to certify that ${user.fullName}`, 400, 100, { align: 'center' });
+    completionDoc.text(`Roll No: ${user.rollNo}`, 400, 130, { align: 'center' });
+    completionDoc.text(`Course Duration: ${user.courseDuration}`, 400, 160, { align: 'center' });
+    completionDoc.text(`Certification Title: ${user.certificationTitle}`, 400, 190, { align: 'center' });
+    completionDoc.text('Verify your result at www.skillupinstitute.co.in', 400, 220, { align: 'center' });
     completionDoc.end();
 
     // Generate Statement of Marks
     const marksFileName = `statement_of_marks_${rollNo}.pdf`;
     const marksFilePath = path.join(tempDir, marksFileName);
-    const marksDoc = new PDFDocument({ size: [612, 792] });
+    const marksDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' }); // A4 landscape
     marksDoc.pipe(fs.createWriteStream(marksFilePath));
 
     const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
-    marksDoc.image(marksImagePath, 0, 0, { width: 612 });
-    marksDoc.fontSize(12).fillColor('#000000');
-    marksDoc.text(`Roll No: ${user.rollNo}`, 200, 100, { align: 'center' });
-    marksDoc.text(`Candidate's Name: ${user.fullName}`, 200, 120, { align: 'center' });
-    marksDoc.text(`Father's Name: ${user.fatherName}`, 200, 140, { align: 'center' });
-    marksDoc.text(`Mother's Name: ${user.motherName}`, 200, 160, { align: 'center' });
+    marksDoc.image(marksImagePath, 0, 0, { width: 842 }); // Scale to A4 width
 
-    let yPos = 200;
+    // Add student photo
+    if (user.photo) {
+      const photoPath = path.join(__dirname, '../public/photos', user.photo); // Adjust path as per your storage
+      if (fs.existsSync(photoPath)) {
+        marksDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
+      }
+    }
+
+    marksDoc.fontSize(14).fillColor('#000000');
+    marksDoc.text(`Roll No: ${user.rollNo}`, 400, 100, { align: 'center' });
+    marksDoc.text(`Candidate's Name: ${user.fullName}`, 400, 130, { align: 'center' });
+    marksDoc.text(`Father's Name: ${user.fatherName}`, 400, 160, { align: 'center' });
+    marksDoc.text(`Mother's Name: ${user.motherName}`, 400, 190, { align: 'center' });
+
+    let yPos = 250;
     marksDoc.font('Helvetica-Bold').text('Subject Code   Subject                     Max Marks   Min Marks   Obtained', 50, yPos);
     yPos += 20;
-    marksDoc.moveTo(50, yPos).lineTo(550, yPos).stroke();
+    marksDoc.moveTo(50, yPos).lineTo(790, yPos).stroke(); // Adjust line to A4 width
     yPos += 20;
 
     const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
@@ -125,10 +143,10 @@ export const generateCertificate = async (req, res) => {
       return sum + marksObtained;
     }, 0);
 
-    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 200, yPos + 20, {
+    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 400, yPos + 20, {
       align: 'center',
     });
-    marksDoc.text('Verify your result at www.skillupinstitute.co.in', 200, yPos + 40, { align: 'center' });
+    marksDoc.text('Verify your result at www.skillupinstitute.co.in', 400, yPos + 40, { align: 'center' });
     marksDoc.end();
 
     // Wait for files to finish writing
