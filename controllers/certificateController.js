@@ -8,8 +8,7 @@ import User from '../models/register.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
-// Add these configurations ABOVE the coordinates object
+// Certificate Templates Configuration
 const certificateTemplates = {
   'CERTIFICATION IN COMPUTER APPLICATION': {
     subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04'],
@@ -43,6 +42,7 @@ const certificateTemplates = {
   },
 };
 
+// Subject Details Configuration
 const subjectDetails = {
   'CS-01': { name: 'Basic Computer', theory: 100, practical: 0 },
   'CS-02': { name: 'Windows Application: MS Office', theory: 40, practical: 60 },
@@ -55,10 +55,7 @@ const subjectDetails = {
   'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
 };
 
-
-
-
-// Configuration constants
+// Layout Configuration
 const LAYOUT = {
   pageSize: [842, 595], // A4 landscape
   margins: {
@@ -192,6 +189,8 @@ export const generateCertificate = async (req, res) => {
 
     // Marks Rows
     let totalMarksObtained = 0;
+    let rowIndex = 0; // Added row counter
+
     template.subjects.forEach((subjectCode) => {
       const subject = subjectDetails[subjectCode];
       const examResult = user.examResults.find(r => r.subjectCode === subjectCode) || {};
@@ -224,6 +223,7 @@ export const generateCertificate = async (req, res) => {
 
       totalMarksObtained += marksObtained;
       currentY += 20;
+      rowIndex++; // Increment row counter
     });
 
     // Totals Section
@@ -263,8 +263,6 @@ export const generateCertificate = async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
-
-// Keep the downloadFile function same as before
 
 export const downloadFile = (req, res) => {
   const { fileName } = req.params;
