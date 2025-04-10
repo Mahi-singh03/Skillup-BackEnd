@@ -72,36 +72,7 @@ export const generateCertificate = async (req, res) => {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Generate Completion Certificate
-    const completionFileName = `completion_certificate_${rollNo}.pdf`;
-    const completionFilePath = path.join(tempDir, completionFileName);
-    const completionDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' }); // A4 landscape
-    completionDoc.pipe(fs.createWriteStream(completionFilePath));
-
-    const completionImagePath = path.join(__dirname, '../public/certificate_templates', template.template);
-    completionDoc.image(completionImagePath, 0, 0, { width: 842 }); // Scale to A4 width
-
-    // Add student photo
-    if (user.photo && typeof user.photo === 'string') { // Ensure photo is a string
-      const photoPath = path.join(__dirname, '../public/photos', user.photo);
-      if (fs.existsSync(photoPath)) {
-        completionDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
-      } else {
-        console.warn(`Photo not found at ${photoPath}`);
-      }
-    } else {
-      console.warn('Invalid photo data in user model, expected string filename');
-    }
-
-    completionDoc.fontSize(14).fillColor('#000000');
-    completionDoc.text(`This is to certify that ${user.fullName}`, 400, 100, { align: 'center' });
-    completionDoc.text(`Roll No: ${user.rollNo}`, 400, 130, { align: 'center' });
-    completionDoc.text(`Course Duration: ${user.courseDuration}`, 400, 160, { align: 'center' });
-    completionDoc.text(`Certification Title: ${user.certificationTitle}`, 400, 190, { align: 'center' });
-    completionDoc.text('Verify your result at www.skillupinstitute.co.in', 400, 220, { align: 'center' });
-    completionDoc.end();
-
-    // Generate Statement of Marks
+    // Generate Statement of Marks (focusing on horizontal layout)
     const marksFileName = `statement_of_marks_${rollNo}.pdf`;
     const marksFilePath = path.join(tempDir, marksFileName);
     const marksDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' }); // A4 landscape
@@ -114,22 +85,33 @@ export const generateCertificate = async (req, res) => {
     if (user.photo && typeof user.photo === 'string') {
       const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
-        marksDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
+        marksDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Top-left corner
       }
     }
 
     marksDoc.fontSize(14).fillColor('#000000');
-    marksDoc.text(`Roll No: ${user.rollNo}`, 400, 100, { align: 'center' });
-    marksDoc.text(`Candidate's Name: ${user.fullName}`, 400, 130, { align: 'center' });
-    marksDoc.text(`Father's Name: ${user.fatherName}`, 400, 160, { align: 'center' });
-    marksDoc.text(`Mother's Name: ${user.motherName}`, 400, 190, { align: 'center' });
 
-    let yPos = 250;
-    marksDoc.font('Helvetica-Bold').text('Subject Code   Subject                     Max Marks   Min Marks   Obtained', 50, yPos);
-    yPos += 20;
-    marksDoc.moveTo(50, yPos).lineTo(790, yPos).stroke(); // Adjust line to A4 width
-    yPos += 20;
+    // Horizontal layout for personal details
+    const startY = 100;
+    marksDoc.text(`Date: `, 50, startY);
+    marksDoc.text(`${new Date().toLocaleDateString()}`, 100, startY); // Dynamic date
+    marksDoc.text(`Roll No: ${user.rollNo}`, 200, startY);
+    marksDoc.text(`Candidate's Name: ${user.fullName}`, 300, startY);
+    marksDoc.text(`Father's Name: ${user.fatherName}`, 450, startY);
+    marksDoc.text(`Mother's Name: ${user.motherName}`, 600, startY);
 
+    // Subject table header (horizontal arrangement)
+    const tableY = startY + 50;
+    marksDoc.font('Helvetica-Bold').text(
+      'Subject Code   Subject                     Max Marks   Min Marks   Marks Obtained',
+      50,
+      tableY,
+      { width: 742, align: 'left' }
+    );
+    marksDoc.moveTo(50, tableY + 20).lineTo(792, tableY + 20).stroke(); // Horizontal line
+
+    // Subject table data
+    let rowY = tableY + 40;
     const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
       const subject = subjectDetails[subjectCode];
       const examResult = user.examResults.find((r) => r.subjectCode === subjectCode);
@@ -141,26 +123,34 @@ export const generateCertificate = async (req, res) => {
           .toString()
           .padEnd(15)} ${marksObtained}`,
         50,
-        yPos
+        rowY,
+        { width: 742, align: 'left' }
       );
-      yPos += 20;
+      rowY += 20;
       return sum + marksObtained;
     }, 0);
 
-    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 400, yPos + 20, {
-      align: 'center',
-    });
-    marksDoc.text('Verify your result at www.skillupinstitute.co.in', 400, yPos + 40, { align: 'center' });
+    // Total marks and verification
+    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 50, rowY + 20);
+    marksDoc.text(
+      `Verify your result at www.skillupinstitute.co.in`,
+      50,
+      rowY + 40,
+      { width: 742, align: 'left' }
+    );
+    marksDoc.text(
+      `Who has successfully completed his/her Course of`,
+      50,
+      rowY + 60,
+      { width: 742, align: 'left' }
+    );
+
     marksDoc.end();
 
-    // Wait for files to finish writing
-    await Promise.all([
-      new Promise((resolve) => completionDoc.on('end', resolve)),
-      new Promise((resolve) => marksDoc.on('end', resolve)),
-    ]);
+    // Wait for file to finish writing
+    await new Promise((resolve) => marksDoc.on('end', resolve));
 
     res.json({
-      completionUrl: `/api/certificates/download/${completionFileName}`,
       marksUrl: `/api/certificates/download/${marksFileName}`,
     });
   } catch (error) {
@@ -184,7 +174,6 @@ export const downloadFile = (req, res) => {
       }
       console.error('Download error:', err);
     }
-    // Clean up file after download
     fs.unlink(filePath, (unlinkErr) => {
       if (unlinkErr) console.error('Error deleting file:', unlinkErr);
     });
