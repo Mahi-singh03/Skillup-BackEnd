@@ -81,12 +81,16 @@ export const generateCertificate = async (req, res) => {
     const completionImagePath = path.join(__dirname, '../public/certificate_templates', template.template);
     completionDoc.image(completionImagePath, 0, 0, { width: 842 }); // Scale to A4 width
 
-    // Add student photo (assuming photo path is stored in user.photo)
-    if (user.photo) {
-      const photoPath = path.join(__dirname, '../public/photos', user.photo); // Adjust path as per your storage
+    // Add student photo
+    if (user.photo && typeof user.photo === 'string') { // Ensure photo is a string
+      const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
         completionDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
+      } else {
+        console.warn(`Photo not found at ${photoPath}`);
       }
+    } else {
+      console.warn('Invalid photo data in user model, expected string filename');
     }
 
     completionDoc.fontSize(14).fillColor('#000000');
@@ -107,8 +111,8 @@ export const generateCertificate = async (req, res) => {
     marksDoc.image(marksImagePath, 0, 0, { width: 842 }); // Scale to A4 width
 
     // Add student photo
-    if (user.photo) {
-      const photoPath = path.join(__dirname, '../public/photos', user.photo); // Adjust path as per your storage
+    if (user.photo && typeof user.photo === 'string') {
+      const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
         marksDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Position and size photo
       }
