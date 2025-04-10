@@ -8,8 +8,7 @@ import User from '../models/register.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
-// Add these configurations ABOVE the coordinates object
+// Certification templates configuration
 const certificateTemplates = {
   'CERTIFICATION IN COMPUTER APPLICATION': {
     subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04'],
@@ -43,6 +42,7 @@ const certificateTemplates = {
   },
 };
 
+// Subject details configuration
 const subjectDetails = {
   'CS-01': { name: 'Basic Computer', theory: 100, practical: 0 },
   'CS-02': { name: 'Windows Application: MS Office', theory: 40, practical: 60 },
@@ -55,8 +55,7 @@ const subjectDetails = {
   'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
 };
 
-// Then keep the coordinates object and rest of the code
-// Coordinate configuration for elements (adjust based on actual background image)
+// Coordinate configuration for elements
 const coordinates = {
   date: { x: 700, y: 100 },
   rollNo: { x: 700, y: 130 },
@@ -105,14 +104,16 @@ export const generateCertificate = async (req, res) => {
     const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
     marksDoc.image(marksImagePath, 0, 0, { width: 842 });
 
-    // Add student photo
-    if (user.photo) {
+    // Handle student photo safely
+    if (user.photo && typeof user.photo === 'string') {
       const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
-        marksDoc.image(photoPath, coordinates.photo.x, coordinates.photo.y, {
-          width: coordinates.photo.width,
-          height: coordinates.photo.height
-        });
+        marksDoc.image(
+          photoPath,
+          coordinates.photo.x,
+          coordinates.photo.y,
+          { width: coordinates.photo.width, height: coordinates.photo.height }
+        );
       }
     }
 
@@ -142,7 +143,7 @@ export const generateCertificate = async (req, res) => {
       currentY += coordinates.table.rowHeight;
     });
 
-    // Totals and Verification
+    // Calculate totals
     const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
       const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
       return sum + (examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0);
@@ -150,6 +151,7 @@ export const generateCertificate = async (req, res) => {
 
     const percentage = ((totalMarksObtained / template.maxMarks) * 100).toFixed(2);
 
+    // Add totals and verification
     marksDoc.font('Helvetica-Bold')
       .text(totalMarksObtained.toString(), coordinates.totals.obtained.x, coordinates.totals.obtained.y)
       .text(`${percentage}%`, coordinates.totals.percentage.x, coordinates.totals.percentage.y)
@@ -167,7 +169,6 @@ export const generateCertificate = async (req, res) => {
   }
 };
 
-
 export const downloadFile = (req, res) => {
   const { fileName } = req.params;
   const filePath = path.join(__dirname, '../temp', fileName);
@@ -177,11 +178,8 @@ export const downloadFile = (req, res) => {
   }
 
   res.download(filePath, fileName, (err) => {
-    if (err) {
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Error downloading file' });
-      }
-      console.error('Download error:', err);
+    if (err && !res.headersSent) {
+      res.status(500).json({ message: 'Error downloading file' });
     }
     fs.unlink(filePath, (unlinkErr) => {
       if (unlinkErr) console.error('Error deleting file:', unlinkErr);
