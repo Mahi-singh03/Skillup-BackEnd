@@ -8,49 +8,30 @@ import User from '../models/register.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const certificateTemplates = {
-  'CERTIFICATION IN COMPUTER APPLICATION': {
-    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04'],
-    maxMarks: 240,
-    minMarks: 72,
-    template: 'completion_certificate.png',
+// Coordinate configuration for elements (adjust based on actual background image)
+const coordinates = {
+  date: { x: 700, y: 100 },
+  rollNo: { x: 700, y: 130 },
+  name: { x: 150, y: 130 },
+  fatherName: { x: 150, y: 160 },
+  motherName: { x: 150, y: 190 },
+  photo: { x: 650, y: 150, width: 120, height: 150 },
+  table: {
+    startY: 260,
+    rowHeight: 30,
+    columns: {
+      code: 50,
+      subject: 150,
+      maxMarks: 450,
+      minMarks: 530,
+      obtained: 610
+    }
   },
-  'DIPLOMA IN COMPUTER APPLICATION': {
-    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04', 'CS-05'],
-    maxMarks: 300,
-    minMarks: 90,
-    template: 'completion_certificate.png',
-  },
-  'ADVANCE DIPLOMA IN COMPUTER APPLICATION': {
-    subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-05', 'CS-06'],
-    maxMarks: 300,
-    minMarks: 90,
-    template: 'completion_certificate.png',
-  },
-  'CERTIFICATION IN COMPUTER ACCOUNTANCY': {
-    subjects: ['CS-01', 'CS-02', 'CS-07', 'CS-08'],
-    maxMarks: 240,
-    minMarks: 72,
-    template: 'completion_certificate.png',
-  },
-  'DIPLOMA IN COMPUTER ACCOUNTANCY': {
-    subjects: ['CS-01', 'CS-02', 'CS-07', 'CS-08', 'CS-09'],
-    maxMarks: 300,
-    minMarks: 90,
-    template: 'completion_certificate.png',
-  },
-};
-
-const subjectDetails = {
-  'CS-01': { name: 'Basic Computer', theory: 100, practical: 0 },
-  'CS-02': { name: 'Windows Application: MS Office', theory: 40, practical: 60 },
-  'CS-03': { name: 'Operating System', theory: 40, practical: 60 },
-  'CS-04': { name: 'Web Publisher: Internet Browsing', theory: 40, practical: 60 },
-  'CS-05': { name: 'COMPUTER ACCOUNTANCY: TALLY', theory: 40, practical: 60 },
-  'CS-06': { name: 'DESKTOP PUBLISHING: PHOTOSHOP', theory: 40, practical: 60 },
-  'CS-07': { name: 'Computerized Accounting With Tally', theory: 40, practical: 60 },
-  'CS-08': { name: 'Manual Accounting', theory: 40, practical: 60 },
-  'CS-09': { name: 'Tally ERP 9 & Tally Prime', theory: 40, practical: 60 },
+  totals: {
+    obtained: { x: 530, y: 500 },
+    percentage: { x: 530, y: 530 },
+    verification: { x: 50, y: 560 }
+  }
 };
 
 export const generateCertificate = async (req, res) => {
@@ -58,106 +39,87 @@ export const generateCertificate = async (req, res) => {
 
   try {
     const user = await User.findOne({ rollNo });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
     const template = certificateTemplates[user.certificationTitle];
-    if (!template) {
-      return res.status(400).json({ message: 'Invalid certification title' });
-    }
+    if (!template) return res.status(400).json({ message: 'Invalid certification title' });
 
     const tempDir = path.join(__dirname, '../temp');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    // Generate Statement of Marks (focusing on horizontal layout)
+    // PDF Setup
     const marksFileName = `statement_of_marks_${rollNo}.pdf`;
     const marksFilePath = path.join(tempDir, marksFileName);
-    const marksDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' }); // A4 landscape
+    const marksDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' });
     marksDoc.pipe(fs.createWriteStream(marksFilePath));
 
+    // Add background image
     const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
-    marksDoc.image(marksImagePath, 0, 0, { width: 842 }); // Scale to A4 width
+    marksDoc.image(marksImagePath, 0, 0, { width: 842 });
 
     // Add student photo
-    if (user.photo && typeof user.photo === 'string') {
+    if (user.photo) {
       const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
-        marksDoc.image(photoPath, 50, 50, { width: 150, height: 150 }); // Top-left corner
+        marksDoc.image(photoPath, coordinates.photo.x, coordinates.photo.y, {
+          width: coordinates.photo.width,
+          height: coordinates.photo.height
+        });
       }
     }
 
-    marksDoc.fontSize(14).fillColor('#000000');
+    // Set consistent font styling
+    marksDoc.font('Helvetica').fontSize(12);
 
-    // Horizontal layout for personal details
-    const startY = 100;
-    marksDoc.text(`Date: `, 50, startY);
-    marksDoc.text(`${new Date().toLocaleDateString()}`, 100, startY); // Dynamic date
-    marksDoc.text(`Roll No: ${user.rollNo}`, 200, startY);
-    marksDoc.text(`Candidate's Name: ${user.fullName}`, 300, startY);
-    marksDoc.text(`Father's Name: ${user.fatherName}`, 450, startY);
-    marksDoc.text(`Mother's Name: ${user.motherName}`, 600, startY);
+    // Personal Information
+    marksDoc.text(new Date().toLocaleDateString(), coordinates.date.x, coordinates.date.y);
+    marksDoc.text(user.rollNo, coordinates.rollNo.x, coordinates.rollNo.y);
+    marksDoc.text(user.fullName, coordinates.name.x, coordinates.name.y);
+    marksDoc.text(user.fatherName, coordinates.fatherName.x, coordinates.fatherName.y);
+    marksDoc.text(user.motherName, coordinates.motherName.x, coordinates.motherName.y);
 
-    // Subject table header (horizontal arrangement)
-    const tableY = startY + 50;
-    marksDoc.font('Helvetica-Bold').text(
-      'Subject Code   Subject                     Max Marks   Min Marks   Marks Obtained',
-      50,
-      tableY,
-      { width: 742, align: 'left' }
-    );
-    marksDoc.moveTo(50, tableY + 20).lineTo(792, tableY + 20).stroke(); // Horizontal line
-
-    // Subject table data
-    let rowY = tableY + 40;
-    const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
+    // Subject Table
+    let currentY = coordinates.table.startY;
+    template.subjects.forEach((subjectCode) => {
       const subject = subjectDetails[subjectCode];
-      const examResult = user.examResults.find((r) => r.subjectCode === subjectCode);
+      const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
       const marksObtained = examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0;
-      marksDoc.text(
-        `${subjectCode.padEnd(15)} ${subject.name.padEnd(30)} ${(subject.theory + subject.practical)
-          .toString()
-          .padEnd(15)} ${Math.round((subject.theory + subject.practical) * 0.3)
-          .toString()
-          .padEnd(15)} ${marksObtained}`,
-        50,
-        rowY,
-        { width: 742, align: 'left' }
-      );
-      rowY += 20;
-      return sum + marksObtained;
+
+      marksDoc.text(subjectCode, coordinates.table.columns.code, currentY);
+      marksDoc.text(subject.name, coordinates.table.columns.subject, currentY);
+      marksDoc.text((subject.theory + subject.practical).toString(), coordinates.table.columns.maxMarks, currentY);
+      marksDoc.text(Math.round((subject.theory + subject.practical) * 0.3).toString(), coordinates.table.columns.minMarks, currentY);
+      marksDoc.text(marksObtained.toString(), coordinates.table.columns.obtained, currentY);
+
+      currentY += coordinates.table.rowHeight;
+    });
+
+    // Totals and Verification
+    const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
+      const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
+      return sum + (examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0);
     }, 0);
 
-    // Total marks and verification
-    marksDoc.text(`Total Marks Obtained: ${totalMarksObtained} out of ${template.maxMarks}`, 50, rowY + 20);
-    marksDoc.text(
-      `Verify your result at www.skillupinstitute.co.in`,
-      50,
-      rowY + 40,
-      { width: 742, align: 'left' }
-    );
-    marksDoc.text(
-      `Who has successfully completed his/her Course of`,
-      50,
-      rowY + 60,
-      { width: 742, align: 'left' }
-    );
+    const percentage = ((totalMarksObtained / template.maxMarks) * 100).toFixed(2);
+
+    marksDoc.font('Helvetica-Bold')
+      .text(totalMarksObtained.toString(), coordinates.totals.obtained.x, coordinates.totals.obtained.y)
+      .text(`${percentage}%`, coordinates.totals.percentage.x, coordinates.totals.percentage.y)
+      .font('Helvetica')
+      .text(`Verify your result at: www.skillupinstitute.co.in`, coordinates.totals.verification.x, coordinates.totals.verification.y);
 
     marksDoc.end();
 
-    // Wait for file to finish writing
-    await new Promise((resolve) => marksDoc.on('end', resolve));
+    await new Promise(resolve => marksDoc.on('end', resolve));
 
-    res.json({
-      marksUrl: `/api/certificates/download/${marksFileName}`,
-    });
+    res.json({ marksUrl: `/api/certificates/download/${marksFileName}` });
   } catch (error) {
     console.error('Error generating certificates:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
+// Keep downloadFile function as is
 
 export const downloadFile = (req, res) => {
   const { fileName } = req.params;
