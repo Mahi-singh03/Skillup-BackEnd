@@ -8,7 +8,7 @@ import User from '../models/register.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Certification templates configuration
+// Certificate templates configuration
 const certificateTemplates = {
   'CERTIFICATION IN COMPUTER APPLICATION': {
     subjects: ['CS-01', 'CS-02', 'CS-03', 'CS-04'],
@@ -71,68 +71,99 @@ const coordinates = {
       subject: 150,
       maxMarks: 450,
       minMarks: 530,
-      obtained: 610
-    }
+      obtained: 610,
+    },
   },
   totals: {
     obtained: { x: 530, y: 500 },
     percentage: { x: 530, y: 530 },
-    verification: { x: 50, y: 560 }
-  }
+    verification: { x: 50, y: 560 },
+  },
 };
 
 export const generateCertificate = async (req, res) => {
   const { rollNo } = req.params;
 
   try {
-    const user = await User.findOne({ rollNo });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    
+    // Validate rollNo
+    if (!rollNo || typeof rollNo !== 'string') {
+      return res.status(400).json({ message: 'Invalid roll number' });
+    }
+
+    // Fetch user data
+    let user;
+    try {
+      user = await User.findOne({ rollNo });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ message: 'Error querying user data', error: dbError.message });
+    }
+
+    // Validate certification template
     const template = certificateTemplates[user.certificationTitle];
-    if (!template) return res.status(400).json({ message: 'Invalid certification title' });
+    if (!template) {
+      return res.status(400).json({ message: 'Invalid certification title' });
+    }
 
+    // Set up temporary directory
     const tempDir = path.join(__dirname, '../temp');
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
 
-    // PDF Setup
+    // Define file paths
     const marksFileName = `statement_of_marks_${rollNo}.pdf`;
     const marksFilePath = path.join(tempDir, marksFileName);
+    const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
+
+    // Validate background image
+    if (!fs.existsSync(marksImagePath)) {
+      throw new Error(`Background image not found at ${marksImagePath}`);
+    }
+
+    // Initialize PDF document
     const marksDoc = new PDFDocument({ size: [842, 595], layout: 'landscape' });
     marksDoc.pipe(fs.createWriteStream(marksFilePath));
 
     // Add background image
-    const marksImagePath = path.join(__dirname, '../public/certificate_templates', 'statement_of_marks.png');
     marksDoc.image(marksImagePath, 0, 0, { width: 842 });
 
     // Handle student photo safely
-    if (user.photo && typeof user.photo === 'string') {
+    if (user.photo && typeof user.photo === 'string' && user.photo.trim().length > 0) {
       const photoPath = path.join(__dirname, '../public/photos', user.photo);
       if (fs.existsSync(photoPath)) {
-        marksDoc.image(
-          photoPath,
-          coordinates.photo.x,
-          coordinates.photo.y,
-          { width: coordinates.photo.width, height: coordinates.photo.height }
-        );
+        marksDoc.image(photoPath, coordinates.photo.x, coordinates.photo.y, {
+          width: coordinates.photo.width,
+          height: coordinates.photo.height,
+        });
+      } else {
+        console.warn(`Photo file not found at ${photoPath}`);
       }
+    } else {
+      console.warn('Invalid or missing photo data for user:', user.rollNo);
     }
 
-    // Set consistent font styling
+    // Set font styling
     marksDoc.font('Helvetica').fontSize(12);
 
-    // Personal Information
+    // Add personal information
     marksDoc.text(new Date().toLocaleDateString(), coordinates.date.x, coordinates.date.y);
     marksDoc.text(user.rollNo, coordinates.rollNo.x, coordinates.rollNo.y);
-    marksDoc.text(user.fullName, coordinates.name.x, coordinates.name.y);
-    marksDoc.text(user.fatherName, coordinates.fatherName.x, coordinates.fatherName.y);
-    marksDoc.text(user.motherName, coordinates.motherName.x, coordinates.motherName.y);
+    marksDoc.text(user.fullName || 'N/A', coordinates.name.x, coordinates.name.y);
+    marksDoc.text(user.fatherName || 'N/A', coordinates.fatherName.x, coordinates.fatherName.y);
+    marksDoc.text(user.motherName || 'N/A', coordinates.motherName.x, coordinates.motherName.y);
 
-    // Subject Table
+    // Generate subject table
     let currentY = coordinates.table.startY;
     template.subjects.forEach((subjectCode) => {
       const subject = subjectDetails[subjectCode];
-      const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
-      const marksObtained = examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0;
+      const examResult = user.examResults.find((r) => r.subjectCode === subjectCode);
+      const marksObtained = examResult
+        ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0)
+        : 0;
 
       marksDoc.text(subjectCode, coordinates.table.columns.code, currentY);
       marksDoc.text(subject.name, coordinates.table.columns.subject, currentY);
@@ -143,28 +174,31 @@ export const generateCertificate = async (req, res) => {
       currentY += coordinates.table.rowHeight;
     });
 
-    // Calculate totals
+    // Calculate and add totals
     const totalMarksObtained = template.subjects.reduce((sum, subjectCode) => {
-      const examResult = user.examResults.find(r => r.subjectCode === subjectCode);
+      const examResult = user.examResults.find((r) => r.subjectCode === subjectCode);
       return sum + (examResult ? (examResult.theoryMarks || 0) + (examResult.practicalMarks || 0) : 0);
     }, 0);
 
     const percentage = ((totalMarksObtained / template.maxMarks) * 100).toFixed(2);
 
-    // Add totals and verification
     marksDoc.font('Helvetica-Bold')
       .text(totalMarksObtained.toString(), coordinates.totals.obtained.x, coordinates.totals.obtained.y)
       .text(`${percentage}%`, coordinates.totals.percentage.x, coordinates.totals.percentage.y)
       .font('Helvetica')
       .text(`Verify your result at: www.skillupinstitute.co.in`, coordinates.totals.verification.x, coordinates.totals.verification.y);
 
+    // Finalize PDF and handle errors
     marksDoc.end();
+    await new Promise((resolve, reject) => {
+      marksDoc.on('end', resolve);
+      marksDoc.on('error', (err) => reject(err));
+    });
 
-    await new Promise(resolve => marksDoc.on('end', resolve));
-
+    // Send response
     res.json({ marksUrl: `/api/certificates/download/${marksFileName}` });
   } catch (error) {
-    console.error('Error generating certificates:', error);
+    console.error('Error generating certificate:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
@@ -173,14 +207,15 @@ export const downloadFile = (req, res) => {
   const { fileName } = req.params;
   const filePath = path.join(__dirname, '../temp', fileName);
 
-  if (!fs.existsSync(filePath)) {
+  if (!fileName || !fs.existsSync(filePath)) {
     return res.status(404).json({ message: 'File not found' });
   }
 
   res.download(filePath, fileName, (err) => {
     if (err && !res.headersSent) {
-      res.status(500).json({ message: 'Error downloading file' });
+      res.status(500).json({ message: 'Error downloading file', error: err.message });
     }
+    // Clean up temporary file
     fs.unlink(filePath, (unlinkErr) => {
       if (unlinkErr) console.error('Error deleting file:', unlinkErr);
     });
