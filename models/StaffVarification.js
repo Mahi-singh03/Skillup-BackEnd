@@ -8,7 +8,6 @@ const staffSchema = new mongoose.Schema({
   DOB: { type: Date, required: true },
   LeavingDate: Date,
   FatherName: String,
-  MotherName: String,
   Address: String,
 });
 
