@@ -67,5 +67,5 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Ensure only ONE export default
+
 export default router;

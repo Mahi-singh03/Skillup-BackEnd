@@ -180,8 +180,8 @@ const login = async (req, res) => {
     userResponse.photo = user.photo ? { message: 'Photo available', contentType: user.contentType } : { message: 'No photo' };
 
     res.status(200).json({
-      rollNo: user.rollNo, 
       token,
+      user: user.toJSON()
     });
 
   } catch (error) {
