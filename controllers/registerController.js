@@ -121,6 +121,8 @@ const register = async (req, res) => {
 
       return res.status(201).json({
         message: 'Registration successful',
+        student: userResponse,
+        token
       });
 
     } catch (error) {
@@ -180,8 +182,9 @@ const login = async (req, res) => {
     userResponse.photo = user.photo ? { message: 'Photo available', contentType: user.contentType } : { message: 'No photo' };
 
     res.status(200).json({
-      token,
-      user: user.toJSON()
+      message: 'Login successful',
+      student: userResponse,
+      token
     });
 
   } catch (error) {
