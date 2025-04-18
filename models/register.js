@@ -9,8 +9,8 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   photo: {
-    type: Buffer, 
-    contentType: String, 
+    data: Buffer,
+    contentType: String,
     required: false
   },
   gender: {
