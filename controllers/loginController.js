@@ -6,7 +6,10 @@ export const registerUser = async (req, res) => {
     try {
         const { email, password, role } = req.body;
 <<<<<<< HEAD
+<<<<<<< HEAD
         const photo = req.file;
+=======
+>>>>>>> parent of 441098a (may be photo displays)
 =======
 >>>>>>> parent of 441098a (may be photo displays)
 
@@ -24,11 +27,15 @@ export const registerUser = async (req, res) => {
             email: email.toLowerCase(),
             password,
 <<<<<<< HEAD
+<<<<<<< HEAD
             role: role || 'user',
             photo: photo ? {
                 data: photo.buffer,
                 contentType: photo.mimetype
             } : null
+=======
+            role: role || 'user'
+>>>>>>> parent of 441098a (may be photo displays)
 =======
             role: role || 'user'
 >>>>>>> parent of 441098a (may be photo displays)
@@ -43,9 +50,12 @@ export const registerUser = async (req, res) => {
         );
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         // Convert to JSON to trigger the schema transform
         const userResponse = newUser.toJSON();
 
+=======
+>>>>>>> parent of 441098a (may be photo displays)
 =======
 >>>>>>> parent of 441098a (may be photo displays)
         res.status(201).json({
@@ -134,9 +144,12 @@ export const loginUser = async (req, res) => {
         );
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         // Convert to JSON to trigger the schema transform
         const userResponse = user.toJSON();
 
+=======
+>>>>>>> parent of 441098a (may be photo displays)
 =======
 >>>>>>> parent of 441098a (may be photo displays)
         res.status(200).json({
@@ -159,6 +172,7 @@ export const getProfile = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         // Convert to JSON to trigger the schema transform
         const userResponse = user.toJSON();
@@ -167,10 +181,14 @@ export const getProfile = async (req, res) => {
 =======
         res.status(200).json({ user: user.toJSON() });
 >>>>>>> parent of 441098a (may be photo displays)
+=======
+        res.status(200).json({ user: user.toJSON() });
+>>>>>>> parent of 441098a (may be photo displays)
     } catch (error) {
         console.error('Profile error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
+<<<<<<< HEAD
 <<<<<<< HEAD
 };
 
@@ -206,6 +224,9 @@ export const updateProfilePicture = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+=======
+}; 
+>>>>>>> parent of 441098a (may be photo displays)
 =======
 }; 
 >>>>>>> parent of 441098a (may be photo displays)
