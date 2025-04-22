@@ -177,25 +177,28 @@ const login = async (req, res) => {
     // Prepare response
     const userResponse = user.toJSON();
 
-    // Debug: Log the photo data to verify
-    console.log('User photo data:', user.photo);
-    console.log('Transformed photo in userResponse:', userResponse.photo);
+    // Debug: Log photo data
+    console.log('Raw user.photo:', user.photo);
+    console.log('Transformed userResponse.photo:', userResponse.photo);
+    console.log('Photo condition check:', {
+      hasUserPhoto: !!user.photo,
+      hasUserResponsePhotoUrl: !!userResponse.photo?.url
+    });
 
     // Include photo details in the response
-    const photoResponse = user.photo && userResponse.photo?.url
+    const photoResponse = user.photo && user.photo.data && userResponse.photo?.url
       ? {
           message: 'Photo available',
-          
           contentType: user.photo.contentType,
-          url: userResponse.photo.url // Use the base64 URL from toJSON
+          url: userResponse.photo.url
         }
-      : { message: 'No photo' };
+      : { message: 'No photo', debug: 'Photo data missing or transformation failed' };
 
     res.status(200).json({
       message: 'Login successful',
       student: {
         ...userResponse,
-        photo: photoResponse // Include the photo response with url
+        photo: photoResponse
       },
       token
     });
@@ -205,7 +208,6 @@ const login = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
-
 const getStudentByRollNo = async (req, res) => {
   try {
     const { rollNo } = req.params;
