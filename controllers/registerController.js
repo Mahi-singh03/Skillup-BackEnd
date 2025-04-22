@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, email }
+    req.user = decoded; 
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Not authorized, token invalid' });
@@ -23,7 +23,7 @@ const protect = async (req, res, next) => {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 }, // 50KB
+  limits: { fileSize: 50 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.mimetype)) {
@@ -146,7 +146,6 @@ const login = async (req, res) => {
   try {
     const { emailAddress, password } = req.body;
 
-    // Validate required fields
     if (!emailAddress || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -158,14 +157,12 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Validate password
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Generate JWT token
     if (!process.env.JWT_SECRET) {
       console.error('JWT_SECRET is not defined');
       return res.status(500).json({ error: 'Server configuration error' });
@@ -179,11 +176,22 @@ const login = async (req, res) => {
 
     // Prepare response
     const userResponse = user.toJSON();
-    userResponse.photo = user.photo ? { message: 'Photo available', contentType: user.contentType } : { message: 'No photo' };
+
+    // Include photo details in the response
+    const photoResponse = user.photo
+      ? {
+          message: 'Photo available',
+          contentType: user.photo.contentType,
+          url: userResponse.photo.url // Use the base64 URL from toJSON
+        }
+      : { message: 'No photo' };
 
     res.status(200).json({
       message: 'Login successful',
-      student: userResponse,
+      student: {
+        ...userResponse,
+        photo: photoResponse // Include the photo response with url
+      },
       token
     });
 
