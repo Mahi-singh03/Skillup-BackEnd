@@ -91,7 +91,7 @@ export const loginUser = async (req, res) => {
         ? {
             message: 'Photo available',
             contentType: user.photo.contentType,
-            url: userResponse.photo.url // Use the base64 URL from toJSON
+            url: userResponse.photo.url 
           }
         : { message: 'No photo' };
   

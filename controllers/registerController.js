@@ -177,8 +177,12 @@ const login = async (req, res) => {
     // Prepare response
     const userResponse = user.toJSON();
 
+    // Debug: Log the photo data to verify
+    console.log('User photo data:', user.photo);
+    console.log('Transformed photo in userResponse:', userResponse.photo);
+
     // Include photo details in the response
-    const photoResponse = user.photo
+    const photoResponse = user.photo && userResponse.photo?.url
       ? {
           message: 'Photo available',
           contentType: user.photo.contentType,
