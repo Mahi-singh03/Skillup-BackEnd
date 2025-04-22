@@ -93,7 +93,7 @@ export const loginUser = async (req, res) => {
             contentType: user.photo.contentType,
             url: userResponse.photo.url 
           }
-        : { message: 'No photo' };
+        : { message: 'No photoss' };
   
       res.status(200).json({
         message: 'Login successful',

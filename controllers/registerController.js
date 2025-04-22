@@ -185,6 +185,7 @@ const login = async (req, res) => {
     const photoResponse = user.photo && userResponse.photo?.url
       ? {
           message: 'Photo available',
+          
           contentType: user.photo.contentType,
           url: userResponse.photo.url // Use the base64 URL from toJSON
         }
