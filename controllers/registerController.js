@@ -50,7 +50,7 @@ const uploadToCloudinary = async (fileBuffer, mimetype, rollNo) => {
     folder: 'StudentProfilePhoto',
     public_id: `student_${rollNo}_${Date.now()}`,
     transformation: [
-      { width: 500, height: 500, crop: 'limit', gravity: 'face' },
+      { width: 500, height: 500, crop: 'fill', gravity: 'face' }, // Changed to 'fill' crop
       { quality: 'auto:best' }
     ]
   });
