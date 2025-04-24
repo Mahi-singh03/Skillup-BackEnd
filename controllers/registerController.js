@@ -165,9 +165,9 @@ const register = async (req, res) => {
       return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
-};
+}
 
-// Login student
+
 const login = async (req, res) => {
   try {
     const { emailAddress, password } = req.body;
@@ -200,19 +200,29 @@ const login = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Prepare response
-    const userResponse = user.toJSON();
+    // Prepare user data for response and storage
+    const userData = {
+      id: user._id,
+      email: user.emailAddress,
+      fullName: user.fullName,
+      rollNo: user.rollNo,
+      photo: user.photo?.url || null,
+      // Add any other relevant user fields you need
+    };
 
-    res.status(200).json({
+    // Prepare response
+    const response = {
       message: 'Login successful',
       student: {
-        ...userResponse,
+        ...userData,
         photo: user.photo 
           ? { url: user.photo.url, message: 'Photo available' }
           : { message: 'No photo available' }
       },
       token
-    });
+    };
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('Login error:', error);
