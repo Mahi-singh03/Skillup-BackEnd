@@ -180,7 +180,7 @@ const login = async (req, res) => {
     }
 
     const user = await Registered_Students.findOne({ emailAddress: emailAddress.toLowerCase() })
-      .select('-password -__v');
+      .select('-password -__v'); 
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -197,12 +197,13 @@ const login = async (req, res) => {
     );
 
     // Prepare the photo response
-    const photoResponse = user.photo?.url
+    const photoResponse = user.photo?.url 
       ? {
+          message: 'Photo available',
           public_id: user.photo.public_id,
           url: user.photo.url
         }
-      : null;
+      : { message: 'No photo available' };
 
     res.status(200).json({
       message: 'Login successful',
@@ -215,9 +216,9 @@ const login = async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       error: 'Internal Server Error',
-      details: error.message
+      details: error.message 
     });
   }
 };
