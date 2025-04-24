@@ -1,6 +1,14 @@
 import Registered_Students from '../models/register.js';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // JWT Middleware
 const protect = async (req, res, next) => {
@@ -23,7 +31,7 @@ const protect = async (req, res, next) => {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 },
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit (increased from 50KB)
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.mimetype)) {
@@ -33,18 +41,34 @@ const upload = multer({
   }
 }).single('photo');
 
+// Helper function to upload photo to Cloudinary
+const uploadToCloudinary = async (fileBuffer, mimetype, rollNo) => {
+  const b64 = Buffer.from(fileBuffer).toString("base64");
+  const dataURI = "data:" + mimetype + ";base64," + b64;
+  
+  return await cloudinary.uploader.upload(dataURI, {
+    folder: 'StudentProfilePhoto',
+    public_id: `student_${rollNo}_${Date.now()}`,
+    transformation: [
+      { width: 500, height: 500, crop: 'limit', gravity: 'face' },
+      { quality: 'auto:best' }
+    ]
+  });
+};
+
+// Register a new student
 const register = async (req, res) => {
   upload(req, res, async (err) => {
     try {
       if (err) {
         console.error('Multer error in register:', err);
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File size must not exceed 50KB' });
+          return res.status(400).json({ error: 'File size must not exceed 2MB' });
         }
         return res.status(400).json({ error: err.message });
       }
 
-      const { emailAddress, password, phoneNumber, aadharNumber, ...rest } = req.body;
+      const { emailAddress, password, phoneNumber, aadharNumber, rollNo, ...rest } = req.body;
 
       // Validate required fields
       if (!emailAddress || !password) {
@@ -77,8 +101,18 @@ const register = async (req, res) => {
         return res.status(409).json({ error: `${field} is already registered` });
       }
 
-      // Log photo data for debugging
-      console.log('Photo data:', req.file ? { mimetype: req.file.mimetype, size: req.file.size } : 'No photo uploaded');
+      let photoData = null;
+      if (req.file) {
+        const cloudinaryResponse = await uploadToCloudinary(
+          req.file.buffer,
+          req.file.mimetype,
+          rollNo || 'new' // Use 'new' if rollNo not provided yet
+        );
+        photoData = {
+          public_id: cloudinaryResponse.public_id,
+          url: cloudinaryResponse.secure_url
+        };
+      }
 
       // Create new user
       const newUser = new Registered_Students({
@@ -87,10 +121,7 @@ const register = async (req, res) => {
         phoneNumber,
         aadharNumber,
         ...rest,
-        ...(req.file && req.file.buffer && req.file.mimetype && {
-          photo: req.file.buffer,
-          contentType: req.file.mimetype
-        })
+        ...(photoData && { photo: photoData })
       });
 
       await newUser.save();
@@ -109,15 +140,9 @@ const register = async (req, res) => {
 
       // Prepare response
       const userResponse = newUser.toJSON();
-      if (req.file && userResponse.photo) {
-        userResponse.photo = {
-          contentType: newUser.contentType,
-          size: req.file.size,
-          message: 'Photo uploaded successfully'
-        };
-      } else {
-        userResponse.photo = { message: 'No photo uploaded' };
-      }
+      userResponse.photo = photoData 
+        ? { url: photoData.url, message: 'Photo uploaded successfully' }
+        : { message: 'No photo uploaded' };
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -142,6 +167,7 @@ const register = async (req, res) => {
   });
 };
 
+// Login student
 const login = async (req, res) => {
   try {
     const { emailAddress, password } = req.body;
@@ -177,28 +203,13 @@ const login = async (req, res) => {
     // Prepare response
     const userResponse = user.toJSON();
 
-    // Debug: Log photo data
-    console.log('Raw user.photo:', user.photo);
-    console.log('Transformed userResponse.photo:', userResponse.photo);
-    console.log('Photo condition check:', {
-      hasUserPhoto: !!user.photo,
-      hasUserResponsePhotoUrl: !!userResponse.photo?.url
-    });
-
-    // Include photo details in the response
-    const photoResponse = user.photo && user.photo.data && userResponse.photo?.url
-      ? {
-          message: 'Photo available',
-          contentType: user.photo.contentType,
-          url: userResponse.photo.url
-        }
-      : { message: 'No photo', debug: 'Photo data missing or transformation failed' };
-
     res.status(200).json({
       message: 'Login successful',
       student: {
         ...userResponse,
-        photo: photoResponse
+        photo: user.photo 
+          ? { url: user.photo.url, message: 'Photo available' }
+          : { message: 'No photo available' }
       },
       token
     });
@@ -208,6 +219,8 @@ const login = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
+
+// Get student by roll number
 const getStudentByRollNo = async (req, res) => {
   try {
     const { rollNo } = req.params;
@@ -226,11 +239,15 @@ const getStudentByRollNo = async (req, res) => {
 
     // Prepare response
     const studentResponse = student.toJSON();
-    studentResponse.photo = student.photo ? { message: 'Photo available', contentType: student.contentType } : { message: 'No photo' };
 
     res.status(200).json({
       message: 'Student details retrieved successfully',
-      student: studentResponse
+      student: {
+        ...studentResponse,
+        photo: student.photo 
+          ? { url: student.photo.url, message: 'Photo available' }
+          : { message: 'No photo available' }
+      }
     });
 
   } catch (error) {
@@ -239,13 +256,14 @@ const getStudentByRollNo = async (req, res) => {
   }
 };
 
+// Update student photo
 const updateStudentPhoto = async (req, res) => {
   upload(req, res, async (err) => {
     try {
       if (err) {
         console.error('Multer error:', err);
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File size must not exceed 50KB' });
+          return res.status(400).json({ error: 'File size must not exceed 2MB' });
         }
         return res.status(400).json({ error: err.message });
       }
@@ -264,15 +282,34 @@ const updateStudentPhoto = async (req, res) => {
         return res.status(404).json({ error: 'Student not found' });
       }
 
-      student.photo = req.file.buffer;
-      student.contentType = req.file.mimetype;
+      // Delete old photo from Cloudinary if exists
+      if (student.photo?.public_id) {
+        try {
+          await cloudinary.uploader.destroy(student.photo.public_id);
+        } catch (cloudinaryErr) {
+          console.error('Error deleting old photo:', cloudinaryErr);
+        }
+      }
+
+      // Upload new photo to Cloudinary
+      const cloudinaryResponse = await uploadToCloudinary(
+        req.file.buffer,
+        req.file.mimetype,
+        rollNo
+      );
+
+      // Update student record
+      student.photo = {
+        public_id: cloudinaryResponse.public_id,
+        url: cloudinaryResponse.secure_url
+      };
 
       await student.save();
 
       return res.status(200).json({
         message: 'Photo updated successfully',
         photo: {
-          contentType: req.file.mimetype,
+          url: cloudinaryResponse.secure_url,
           size: req.file.size,
         },
       });
@@ -283,5 +320,4 @@ const updateStudentPhoto = async (req, res) => {
   });
 };
 
-// Export with protection middleware
 export { register, login, getStudentByRollNo, updateStudentPhoto, protect };

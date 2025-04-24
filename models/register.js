@@ -8,8 +8,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
   },
   photo: {
-    data: Buffer,
-    contentType: String,
+    public_id: {
+      type: String,
+      default: null,
+    }
   },
   gender: {
     type: String,
@@ -189,11 +191,6 @@ userSchema.pre('save', async function (next) {
 // Transform photo Buffer to base64 data URL and remove sensitive fields
 userSchema.set('toJSON', {
   transform: (doc, ret) => {
-    // Convert photo Buffer to base64 data URL
-    if (ret.photo && ret.photo.data) {
-      ret.photo.url = `data:${ret.photo.contentType};base64,${ret.photo.data.toString('base64')}`;
-      delete ret.photo.data; // Remove raw Buffer
-    }
     // Remove sensitive fields
     delete ret.password;
     delete ret.__v;
