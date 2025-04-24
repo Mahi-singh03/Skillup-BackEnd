@@ -10,7 +10,11 @@ const userSchema = new mongoose.Schema({
   photo: {
     public_id: {
       type: String,
-      default: null,
+      default: null
+    },
+    url: {
+      type: String,
+      default: null
     }
   },
   gender: {
