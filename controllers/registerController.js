@@ -1,5 +1,6 @@
 import Registered_Students from '../models/register.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -31,7 +32,7 @@ const protect = async (req, res, next) => {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit (increased from 50KB)
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.mimetype)) {
@@ -50,7 +51,7 @@ const uploadToCloudinary = async (fileBuffer, mimetype, rollNo) => {
     folder: 'StudentProfilePhoto',
     public_id: `student_${rollNo}_${Date.now()}`,
     transformation: [
-      { width: 500, height: 500, crop: 'fill', gravity: 'face' }, // Changed to 'fill' crop
+      { width: 500, height: 500, crop: 'fill', gravity: 'face' },
       { quality: 'auto:best' }
     ]
   });
@@ -106,7 +107,7 @@ const register = async (req, res) => {
         const cloudinaryResponse = await uploadToCloudinary(
           req.file.buffer,
           req.file.mimetype,
-          rollNo || 'new' // Use 'new' if rollNo not provided yet
+          rollNo || 'new'
         );
         photoData = {
           public_id: cloudinaryResponse.public_id,
@@ -169,8 +170,67 @@ const register = async (req, res) => {
       return res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
-}
+};
 
+// Login a student
+const login = async (req, res) => {
+  try {
+    const { emailAddress, password } = req.body;
+
+    // Validate required fields
+    if (!emailAddress || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find student by email
+    const student = await Registered_Students.findOne({
+      emailAddress: emailAddress.toLowerCase(),
+    });
+
+    if (!student) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, student.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const token = jwt.sign(
+      { id: student._id, email: student.emailAddress },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Prepare response
+    const studentResponse = {
+      ...student.toObject(),
+      password: undefined, // Remove password from response
+      __v: undefined, // Remove version key
+      photo: student.photo
+        ? { url: student.photo.url, message: 'Photo available' }
+        : { message: 'No photo available' },
+    };
+
+    return res.status(200).json({
+      message: 'Login successful',
+      student: studentResponse,
+      token,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+};
+
+// Update student photo
 const updateStudentPhoto = async (req, res) => {
   upload(req, res, async (err) => {
     try {
@@ -215,7 +275,7 @@ const updateStudentPhoto = async (req, res) => {
       // Update student record with photo details
       student.photo = {
         public_id: cloudinaryResponse.public_id,
-        url: cloudinaryResponse.secure_url
+        url: cloudinaryResponse.secure_url,
       };
 
       await student.save();
@@ -272,7 +332,5 @@ const getStudentByRollNo = async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
-
-
 
 export { register, login, getStudentByRollNo, updateStudentPhoto, protect };
