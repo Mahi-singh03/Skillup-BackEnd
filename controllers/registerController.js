@@ -171,7 +171,6 @@ const register = async (req, res) => {
   });
 }
 
-
 const login = async (req, res) => {
   try {
     const { emailAddress, password } = req.body;
@@ -204,20 +203,24 @@ const login = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Prepare user data for response and storage
-    const userData = {
-      ...user.toObject(),
-      password: undefined, // Remove password from response
-      __v: undefined, // Remove version key
-      photo: user.photo 
-        ? { url: user.photo.url, message: 'Photo available' }
-        : { message: 'No photo available' }
-    };
-
     // Prepare response
+    const userResponse = user.toObject();
+    delete userResponse.password; // Remove sensitive fields
+    delete userResponse.__v;
+
+    // Include photo URL directly in the response
     const response = {
       message: 'Login successful',
-      student: userData,
+      student: {
+        ...userResponse,
+        photo: user.photo 
+          ? { 
+              url: user.photo.url, // Make sure this is included
+              public_id: user.photo.public_id, // Optional: include public_id if needed
+              message: 'Photo available' 
+            }
+          : { message: 'No photo available' }
+      },
       token
     };
 
