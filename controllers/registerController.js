@@ -179,15 +179,22 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await Registered_Students.findOne({ emailAddress: emailAddress.toLowerCase() })
-      .select('-password -__v'); 
+    // Find user
+    const user = await Registered_Students.findOne({ emailAddress: emailAddress.toLowerCase() });
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const isPasswordValid = await user.comparePassword(password);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
     const token = jwt.sign(
@@ -196,32 +203,35 @@ const login = async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Prepare the photo response
-    const photoResponse = user.photo?.url 
-      ? {
-          message: 'Photo available',
-          public_id: user.photo.public_id,
-          url: user.photo.url
-        }
-      : { message: 'No photo available' };
+    // Prepare response
+    const userResponse = user.toObject();
+    delete userResponse.password; // Remove sensitive fields
+    delete userResponse.__v;
 
-    res.status(200).json({
+    // Include photo URL directly in the response
+    const response = {
       message: 'Login successful',
       student: {
-        ...user.toObject(),
-        photo: photoResponse
+        ...userResponse,
+        photo: user.photo 
+          ? { 
+              url: user.photo.url, // Make sure this is included
+              public_id: user.photo.public_id, // Optional: include public_id if needed
+              message: 'Photo available' 
+            }
+          : { message: 'No photo available' }
       },
       token
-    });
+    };
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error',
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
+
 // Get student by roll number
 const getStudentByRollNo = async (req, res) => {
   try {
@@ -302,7 +312,7 @@ const updateStudentPhoto = async (req, res) => {
         rollNo
       );
 
-      // Update student record with photo details
+      // Update student record
       student.photo = {
         public_id: cloudinaryResponse.public_id,
         url: cloudinaryResponse.secure_url
@@ -313,7 +323,6 @@ const updateStudentPhoto = async (req, res) => {
       return res.status(200).json({
         message: 'Photo updated successfully',
         photo: {
-          public_id: cloudinaryResponse.public_id,
           url: cloudinaryResponse.secure_url,
           size: req.file.size,
         },
@@ -324,6 +333,5 @@ const updateStudentPhoto = async (req, res) => {
     }
   });
 };
-
 
 export { register, login, getStudentByRollNo, updateStudentPhoto, protect };
