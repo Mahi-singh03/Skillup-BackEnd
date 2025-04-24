@@ -171,106 +171,6 @@ const register = async (req, res) => {
   });
 }
 
-const login = async (req, res) => {
-  try {
-    const { emailAddress, password } = req.body;
-
-    if (!emailAddress || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // Find user
-    const user = await Registered_Students.findOne({ emailAddress: emailAddress.toLowerCase() });
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const isPasswordValid = await user.comparePassword(password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET is not defined');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, email: user.emailAddress },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Prepare response
-    const userResponse = user.toObject();
-    delete userResponse.password; // Remove sensitive fields
-    delete userResponse.__v;
-
-    // Include photo URL directly in the response
-    const response = {
-      message: 'Login successful',
-      student: {
-        ...userResponse,
-        photo: user.photo 
-          ? { 
-              url: user.photo.url, // Make sure this is included
-              public_id: user.photo.public_id, // Optional: include public_id if needed
-              message: 'Photo available' 
-            }
-          : { message: 'No photo available' }
-      },
-      token
-    };
-
-    res.status(200).json(response);
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
-};
-
-// Get student by roll number
-const getStudentByRollNo = async (req, res) => {
-  try {
-    const { rollNo } = req.params;
-
-    // Validate roll number
-    if (!rollNo) {
-      return res.status(400).json({ error: 'Roll number is required' });
-    }
-
-    // Find student
-    const student = await Registered_Students.findOne({ rollNo });
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    // Prepare response
-    const studentResponse = {
-      ...student.toObject(),
-      password: undefined, // Remove password from response
-      __v: undefined, // Remove version key
-      photo: student.photo 
-        ? { url: student.photo.url, message: 'Photo available' }
-        : { message: 'No photo available' }
-    };
-
-    res.status(200).json({
-      message: 'Student details retrieved successfully',
-      student: studentResponse
-    });
-
-  } catch (error) {
-    console.error('Get student by roll number error:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
-};
-
-// Update student photo
 const updateStudentPhoto = async (req, res) => {
   upload(req, res, async (err) => {
     try {
@@ -312,7 +212,7 @@ const updateStudentPhoto = async (req, res) => {
         rollNo
       );
 
-      // Update student record
+      // Update student record with photo details
       student.photo = {
         public_id: cloudinaryResponse.public_id,
         url: cloudinaryResponse.secure_url
@@ -323,6 +223,7 @@ const updateStudentPhoto = async (req, res) => {
       return res.status(200).json({
         message: 'Photo updated successfully',
         photo: {
+          public_id: cloudinaryResponse.public_id,
           url: cloudinaryResponse.secure_url,
           size: req.file.size,
         },
@@ -333,5 +234,45 @@ const updateStudentPhoto = async (req, res) => {
     }
   });
 };
+
+// Get student by roll number
+const getStudentByRollNo = async (req, res) => {
+  try {
+    const { rollNo } = req.params;
+
+    // Validate roll number
+    if (!rollNo) {
+      return res.status(400).json({ error: 'Roll number is required' });
+    }
+
+    // Find student
+    const student = await Registered_Students.findOne({ rollNo });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Prepare response
+    const studentResponse = {
+      ...student.toObject(),
+      password: undefined, // Remove password from response
+      __v: undefined, // Remove version key
+      photo: student.photo 
+        ? { url: student.photo.url, message: 'Photo available' }
+        : { message: 'No photo available' }
+    };
+
+    res.status(200).json({
+      message: 'Student details retrieved successfully',
+      student: studentResponse
+    });
+
+  } catch (error) {
+    console.error('Get student by roll number error:', error);
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+};
+
+
 
 export { register, login, getStudentByRollNo, updateStudentPhoto, protect };
