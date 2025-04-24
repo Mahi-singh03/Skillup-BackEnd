@@ -139,10 +139,14 @@ const register = async (req, res) => {
       );
 
       // Prepare response
-      const userResponse = newUser.toJSON();
-      userResponse.photo = photoData 
-        ? { url: photoData.url, message: 'Photo uploaded successfully' }
-        : { message: 'No photo uploaded' };
+      const userResponse = {
+        ...newUser.toObject(),
+        password: undefined, // Remove password from response
+        __v: undefined, // Remove version key
+        photo: photoData 
+          ? { url: photoData.url, message: 'Photo uploaded successfully' }
+          : { message: 'No photo uploaded' }
+      };
 
       return res.status(201).json({
         message: 'Registration successful',
@@ -202,23 +206,18 @@ const login = async (req, res) => {
 
     // Prepare user data for response and storage
     const userData = {
-      id: user._id,
-      email: user.emailAddress,
-      fullName: user.fullName,
-      rollNo: user.rollNo,
-      photo: user.photo?.url || null,
-      // Add any other relevant user fields you need
+      ...user.toObject(),
+      password: undefined, // Remove password from response
+      __v: undefined, // Remove version key
+      photo: user.photo 
+        ? { url: user.photo.url, message: 'Photo available' }
+        : { message: 'No photo available' }
     };
 
     // Prepare response
     const response = {
       message: 'Login successful',
-      student: {
-        ...userData,
-        photo: user.photo 
-          ? { url: user.photo.url, message: 'Photo available' }
-          : { message: 'No photo available' }
-      },
+      student: userData,
       token
     };
 
@@ -248,16 +247,18 @@ const getStudentByRollNo = async (req, res) => {
     }
 
     // Prepare response
-    const studentResponse = student.toJSON();
+    const studentResponse = {
+      ...student.toObject(),
+      password: undefined, // Remove password from response
+      __v: undefined, // Remove version key
+      photo: student.photo 
+        ? { url: student.photo.url, message: 'Photo available' }
+        : { message: 'No photo available' }
+    };
 
     res.status(200).json({
       message: 'Student details retrieved successfully',
-      student: {
-        ...studentResponse,
-        photo: student.photo 
-          ? { url: student.photo.url, message: 'Photo available' }
-          : { message: 'No photo available' }
-      }
+      student: studentResponse
     });
 
   } catch (error) {
