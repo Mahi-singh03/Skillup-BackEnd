@@ -37,6 +37,11 @@ const userSchema = new mongoose.Schema({
     required: [true, "Mother's name is required"],
     trim: true,
   },
+  parentsPhoneNumber:{
+    type: String,
+    required: [true, 'Phone number is required'],
+    trim: true,
+  },
   rollNo: {
     type: String,
     unique: true,
@@ -98,6 +103,25 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: false,
   },
+
+  fees: [{
+    total: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    paid: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    unpaid: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  }],
+  
   examResults: [{
     subjectCode: {
       type: String,

@@ -14,6 +14,8 @@ import staffRoutes from "./routes/StaffRoutes.js"
 import adminRoutes from './routes/Admin.js';
 import certificateRoutes from './routes/certificateRoutes.js';
 
+import feeRoutes from "./routes/certificateRoutes.js"
+
 const app = express();
 
 // Security middleware
@@ -50,6 +52,7 @@ app.use('/api', cloudinaryRoutes);
 app.use('/api/staff', staffRoutes)
 app.use('/api/admin', adminRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/fees', feeRoutes);
 
 // 404 handler
 app.use((req, res) => {
