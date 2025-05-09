@@ -1,4 +1,4 @@
-import Registered_Students from '../models/register'; 
+import Registered_Students from '../models/register';
 import asyncHandler from 'express-async-handler';
 
 // @desc    Get student details by phone number or roll number
@@ -34,6 +34,40 @@ export const getStudentDetails = asyncHandler(async (req, res) => {
       courseDuration: student.courseDuration,
       fees: student.fees.length > 0 ? student.fees[0] : { total: 0, paid: 0, unpaid: 0 },
     },
+  });
+});
+
+// @desc    Get all students' fees with optional filters
+// @route   GET /api/fees/all
+// @access  Public
+export const getAllStudentFees = asyncHandler(async (req, res) => {
+  const { incompleteOnly } = req.query;
+  
+  let query = {};
+  
+  // Filter for students with incomplete fees (unpaid > 0)
+  if (incompleteOnly === 'true') {
+    query = { 'fees.unpaid': { $gt: 0 } };
+  }
+
+  const students = await Registered_Students.find(query).select(
+    'fullName fatherName selectedCourse courseDuration fees rollNo phoneNumber'
+  );
+
+  const formattedStudents = students.map(student => ({
+    fullName: student.fullName,
+    fatherName: student.fatherName,
+    selectedCourse: student.selectedCourse,
+    courseDuration: student.courseDuration,
+    rollNo: student.rollNo,
+    phoneNumber: student.phoneNumber,
+    fees: student.fees.length > 0 ? student.fees[0] : { total: 0, paid: 0, unpaid: 0 },
+  }));
+
+  res.status(200).json({
+    success: true,
+    count: formattedStudents.length,
+    data: formattedStudents,
   });
 });
 
