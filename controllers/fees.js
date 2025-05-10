@@ -1,4 +1,4 @@
-import Registered_Students from '../models/register';
+import Registered_Students from '../models/register.js';
 import asyncHandler from 'express-async-handler';
 
 // @desc    Get student details by phone number or roll number
