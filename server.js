@@ -16,7 +16,7 @@ import certificateRoutes from './routes/certificateRoutes.js';
 
 import feeRoutes from "./routes/feeRoutes.js"
 
-import { editStudent } from './controllers/editstudent.js';
+
 
 const app = express();
 
