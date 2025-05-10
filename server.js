@@ -16,6 +16,8 @@ import certificateRoutes from './routes/certificateRoutes.js';
 
 import feeRoutes from "./routes/feeRoutes.js"
 
+import { editStudent } from './controllers/editstudent.js';
+
 const app = express();
 
 // Security middleware
@@ -53,6 +55,7 @@ app.use('/api/staff', staffRoutes)
 app.use('/api/admin', adminRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/fees', feeRoutes);
+app.use('/api/students', studentRoutes);
 
 // 404 handler
 app.use((req, res) => {
