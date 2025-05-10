@@ -27,6 +27,27 @@ const buildStudentQuery = (phoneNumber, rollNo) => {
   return query;
 };
 
+// @desc    Search for a student by phoneNumber or rollNo
+// @route   GET /api/students/search
+// @access  Public
+export const searchStudent = asyncHandler(async (req, res) => {
+  const { phoneNumber, rollNo } = req.query;
+
+  const query = buildStudentQuery(phoneNumber, rollNo);
+
+  const student = await Registered_Students.findOne(query).select('-password');
+  if (!student) {
+    res.status(404);
+    throw new Error('Student not found');
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Student found successfully',
+    data: student,
+  });
+});
+
 // @desc    Edit student details
 // @route   PUT /api/students/edit
 // @access  Public
@@ -152,7 +173,7 @@ export const editStudent = asyncHandler(async (req, res) => {
     updateData.password = await bcrypt.hash(password, 12);
   }
 
-  // Handle fees update (similar to updateStudentFees)
+  // Handle fees update
   if (fees) {
     let studentFees = student.fees.length > 0 ? student.fees[0] : { total: 0, paid: 0, unpaid: 0, installments: [] };
 
@@ -173,8 +194,9 @@ export const editStudent = asyncHandler(async (req, res) => {
       }
       if (installmentAmount > studentFees.unpaid) {
         res.status(400);
-        throw new Error('Installment amount cannot exceed unpaid amount');
+        throw new Error('Installment amount cannot be greater than unpaid amount');
       }
+
       studentFees.paid += installmentAmount;
       studentFees.unpaid = studentFees.total - studentFees.paid;
 

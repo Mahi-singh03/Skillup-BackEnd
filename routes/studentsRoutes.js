@@ -1,14 +1,10 @@
 import express from 'express';
-import { register, login, getStudentByRollNo, updateStudentPhoto, } from '../controllers/registerController.js';
-import { editStudent } from '../controllers/editstudent.js';
-
-
-
-
+import { register, login, getStudentByRollNo, updateStudentPhoto } from '../controllers/registerController.js';
+import { searchStudent, editStudent } from '../controllers/editstudent.js';
 
 const router = express.Router();
 
-
+// Authentication routes
 router.post('/register', register);
 router.post('/login', login);
 
@@ -19,10 +15,8 @@ router.post('/student/login', login);
 router.get('/rollno/:rollNo', getStudentByRollNo);
 router.post('/student/photo', updateStudentPhoto);
 
+// Edit student routes
+router.get('/search', searchStudent);
 router.put('/edit', editStudent);
-
-
-
-
 
 export default router;
