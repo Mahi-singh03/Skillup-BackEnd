@@ -2,27 +2,73 @@ import Registered_Students from '../models/register.js';
 import asyncHandler from 'express-async-handler';
 import bcrypt from 'bcryptjs';
 
+// Subject code mappings
+const CERTIFICATION_IN_COMPUTER_APPLICATION = {
+  "CS-01": "Basic Computer",
+  "CS-02": "Windows Application: MS Office",
+  "CS-03": "Operating System",
+  "CS-04": "Web Publisher: Internet Browsing"
+};
+
+const DIPLOMA_IN_COMPUTER_APPLICATION = {
+  "CS-01": "Basic Computer",
+  "CS-02": "Windows Application: MS Office",
+  "CS-03": "Operating System",
+  "CS-04": "Web Publisher: Internet Browsing",
+  "CS-05": "Computer Accountancy: Tally"
+};
+
+const ADVANCE_DIPLOMA_IN_COMPUTER_APPLICATION = {
+  "CS-01": "Basic Computer",
+  "CS-02": "Windows Application: MS Office",
+  "CS-03": "Operating System",
+  "CS-05": "Computer Accountancy: Tally",
+  "CS-06": "Desktop Publishing: Photoshop"
+};
+
+const CERTIFICATION_IN_COMPUTER_ACCOUNTANCY = {
+  "CS-01": "Basic Computer",
+  "CS-02": "Windows Application: MS Office",
+  "CS-07": "Computerized Accounting With Tally",
+  "CS-08": "Manual Accounting"
+};
+
+const DIPLOMA_IN_COMPUTER_ACCOUNTANCY = {
+  "CS-01": "Basic Computer",
+  "CS-02": "Windows Application: MS Office",
+  "CS-07": "Computerized Accounting With Tally",
+  "CS-08": "Manual Accounting",
+  "CS-09": "Tally ERP 9 & Tally Prime"
+};
+
+// Map certification titles to subject codes
+const certificationSubjectMap = {
+  'CERTIFICATION IN COMPUTER APPLICATION': CERTIFICATION_IN_COMPUTER_APPLICATION,
+  'DIPLOMA IN COMPUTER APPLICATION': DIPLOMA_IN_COMPUTER_APPLICATION,
+  'ADVANCE DIPLOMA IN COMPUTER APPLICATION': ADVANCE_DIPLOMA_IN_COMPUTER_APPLICATION,
+  'CERTIFICATION IN COMPUTER ACCOUNTANCY': CERTIFICATION_IN_COMPUTER_ACCOUNTANCY,
+  'DIPLOMA IN COMPUTER ACCOUNTANCY': DIPLOMA_IN_COMPUTER_ACCOUNTANCY,
+};
+
 // Utility function to build query for phoneNumber or rollNo
 const buildStudentQuery = (phoneNumber, rollNo) => {
   if (!phoneNumber && !rollNo) {
     throw new Error('Please provide either phone number or roll number');
   }
 
-  if (phoneNumber && rollNo) {
-    throw new Error('Please provide only one of phone number or roll number');
-  }
-
-  if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
-    throw new Error('Phone number must be a 10-digit number');
-  }
-
-  if (rollNo && !/^[A-Za-z0-9]+$/.test(rollNo)) {
-    throw new Error('Roll number must be alphanumeric');
-  }
-
+  // Allow both but prioritize rollNo if provided
   const query = {};
-  if (phoneNumber) query.phoneNumber = phoneNumber;
-  if (rollNo) query.rollNo = rollNo;
+  if (rollNo) {
+    if (!/^[A-Za-z0-9]+$/.test(rollNo)) {
+      throw new Error('Roll number must be alphanumeric');
+    }
+    query.rollNo = rollNo;
+  } else if (phoneNumber) {
+    if (!/^\d{10}$/.test(phoneNumber)) {
+      throw new Error('Phone number must be a 10-digit number');
+    }
+    query.phoneNumber = phoneNumber;
+  }
 
   return query;
 };
@@ -48,7 +94,7 @@ export const searchStudent = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Edit student details
+// @desc    Edit student details and exam results
 // @route   PUT /api/students/edit
 // @access  Public
 export const editStudent = asyncHandler(async (req, res) => {
@@ -71,6 +117,8 @@ export const editStudent = asyncHandler(async (req, res) => {
     certificate,
     joiningDate,
     fees, // Expecting { total, installmentAmount, installmentDate }
+    examResults, // Expecting [{ subjectCode, theoryMarks, practicalMarks, examDate }]
+    finalGrade,
   } = req.body;
 
   const query = buildStudentQuery(phoneNumber, rollNo);
@@ -133,6 +181,11 @@ export const editStudent = asyncHandler(async (req, res) => {
     throw new Error('Invalid joining date');
   }
 
+  if (finalGrade && !['A', 'B', 'C', 'D', 'F', 'Pending'].includes(finalGrade)) {
+    res.status(400);
+    throw new Error('Invalid final grade');
+  }
+
   // Check for unique constraints
   if (emailAddress && emailAddress !== student.emailAddress) {
     const emailExists = await Registered_Students.findOne({ emailAddress });
@@ -167,6 +220,7 @@ export const editStudent = asyncHandler(async (req, res) => {
   if (qualification) updateData.qualification = qualification;
   if (certificate !== undefined) updateData.certificate = certificate;
   if (joiningDate) updateData.joiningDate = new Date(joiningDate);
+  if (finalGrade) updateData.finalGrade = finalGrade;
 
   // Handle password update
   if (password) {
@@ -216,6 +270,48 @@ export const editStudent = asyncHandler(async (req, res) => {
     updateData.fees = [studentFees];
   }
 
+  // Handle exam results update
+  if (examResults && Array.isArray(examResults)) {
+    const validSubjects = certificationSubjectMap[student.certificationTitle] || {};
+    const updatedExamResults = [];
+
+    for (const result of examResults) {
+      const { subjectCode, theoryMarks, practicalMarks, examDate } = result;
+
+      if (!subjectCode || !validSubjects[subjectCode]) {
+        res.status(400);
+        throw new Error(`Invalid subject code: ${subjectCode} for certification: ${student.certificationTitle}`);
+      }
+
+      if (theoryMarks !== undefined && (!Number.isFinite(theoryMarks) || theoryMarks < 0)) {
+        res.status(400);
+        throw new Error('Theory marks must be a non-negative number');
+      }
+
+      if (practicalMarks !== undefined && (!Number.isFinite(practicalMarks) || practicalMarks < 0)) {
+        res.status(400);
+        throw new Error('Practical marks must be a non-negative number');
+      }
+
+      if (examDate && isNaN(Date.parse(examDate))) {
+        res.status(400);
+        throw new Error('Invalid exam date');
+      }
+
+      const totalMarks = (theoryMarks || 0) + (practicalMarks || 0);
+      updatedExamResults.push({
+        subjectCode,
+        subjectName: validSubjects[subjectCode],
+        theoryMarks: theoryMarks !== undefined ? theoryMarks : null,
+        practicalMarks: practicalMarks !== undefined ? practicalMarks : null,
+        totalMarks: totalMarks || null,
+        examDate: examDate ? new Date(examDate) : new Date(),
+      });
+    }
+
+    updateData.examResults = updatedExamResults;
+  }
+
   // Update student
   const updatedStudent = await Registered_Students.findOneAndUpdate(
     query,
@@ -231,6 +327,69 @@ export const editStudent = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Student details updated successfully',
+    data: updatedStudent,
+  });
+});
+
+// @desc    Add a new exam result manually
+// @route   POST /api/students/exam-result
+// @access  Public
+export const addExamResult = asyncHandler(async (req, res) => {
+  const { phoneNumber, rollNo, subjectCode, theoryMarks, practicalMarks, examDate } = req.body;
+
+  const query = buildStudentQuery(phoneNumber, rollNo);
+
+  // Find the student
+  const student = await Registered_Students.findOne(query);
+  if (!student) {
+    res.status(404);
+    throw new Error('Student not found');
+  }
+
+  // Validate subject code
+  const validSubjects = certificationSubjectMap[student.certificationTitle] || {};
+  if (!subjectCode || !validSubjects[subjectCode]) {
+    res.status(400);
+    throw new Error(`Invalid subject code: ${subjectCode} for certification: ${student.certificationTitle}`);
+  }
+
+  // Validate marks
+  if (theoryMarks !== undefined && (!Number.isFinite(theoryMarks) || theoryMarks < 0)) {
+    res.status(400);
+    throw new Error('Theory marks must be a non-negative number');
+  }
+
+  if (practicalMarks !== undefined && (!Number.isFinite(practicalMarks) || practicalMarks < 0)) {
+    res.status(400);
+    throw new Error('Practical marks must be a non-negative number');
+  }
+
+  if (examDate && isNaN(Date.parse(examDate))) {
+    res.status(400);
+    throw new Error('Invalid exam date');
+  }
+
+  // Calculate total marks
+  const totalMarks = (theoryMarks || 0) + (practicalMarks || 0);
+
+  // Add new exam result
+  const newResult = {
+    subjectCode,
+    subjectName: validSubjects[subjectCode],
+    theoryMarks: theoryMarks !== undefined ? theoryMarks : null,
+    practicalMarks: practicalMarks !== undefined ? practicalMarks : null,
+    totalMarks: totalMarks || null,
+    examDate: examDate ? new Date(examDate) : new Date(),
+  };
+
+  student.examResults.push(newResult);
+
+  // Save updated student
+  const updatedStudent = await student.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Exam result added successfully',
     data: updatedStudent,
   });
 });
