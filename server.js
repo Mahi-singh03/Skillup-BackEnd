@@ -14,7 +14,7 @@ import staffRoutes from "./routes/StaffRoutes.js"
 import adminRoutes from './routes/Admin.js';
 import certificateRoutes from './routes/certificateRoutes.js';
 
-import feeRoutes from "./routes/certificateRoutes.js"
+import feeRoutes from "./routes/feeRoutes.js"
 
 const app = express();
 
