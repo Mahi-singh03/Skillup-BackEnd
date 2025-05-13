@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
     required: [true, "Mother's name is required"],
     trim: true,
   },
-  parentsPhoneNumber: {
+  parentsPhoneNumber:{
     type: String,
     required: [true, 'Phone number is required'],
     trim: true,
@@ -103,14 +103,7 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: false,
   },
-  joiningDate: {
-    type: Date,
-    required: [true, 'Joining date is required'],
-  },
-  farewellDate: {
-    type: Date,
-    required: [true, 'Farewell date is required'],
-  },
+
   fees: [{
     total: {
       type: Number,
@@ -126,20 +119,9 @@ const userSchema = new mongoose.Schema({
       type: Number,
       required: true,
       min: 0
-    },
-    installments: [{
-      amount: {
-        type: Number,
-        required: true,
-        min: 0
-      },
-      date: {
-        type: Date,
-        required: true,
-        default: Date.now
-      }
-    }]
+    }
   }],
+  
   examResults: [{
     subjectCode: {
       type: String,
@@ -172,32 +154,6 @@ const userSchema = new mongoose.Schema({
     default: 'Pending',
   },
 }, { timestamps: true });
-
-// Calculate farewellDate based on joiningDate and courseDuration
-userSchema.pre('save', async function (next) {
-  if (this.isModified('joiningDate') || this.isModified('courseDuration') || !this.farewellDate) {
-    const joiningDate = this.joiningDate;
-    if (!joiningDate) {
-      return next(new Error('Joining date is required to calculate farewell date'));
-    }
-
-    const durationMap = {
-      '3 months': 3,
-      '6 months': 6,
-      '1 year': 12,
-    };
-
-    const monthsToAdd = durationMap[this.courseDuration];
-    if (!monthsToAdd) {
-      return next(new Error('Invalid course duration'));
-    }
-
-    const farewellDate = new Date(joiningDate);
-    farewellDate.setMonth(farewellDate.getMonth() + monthsToAdd);
-    this.farewellDate = farewellDate;
-  }
-  next();
-});
 
 // Generate certification title before saving
 userSchema.pre('save', async function (next) {
@@ -263,6 +219,7 @@ userSchema.pre('save', async function (next) {
 // Transform photo Buffer to base64 data URL and remove sensitive fields
 userSchema.set('toJSON', {
   transform: (doc, ret) => {
+    // Remove sensitive fields
     delete ret.password;
     delete ret.__v;
     ret.id = ret._id;
