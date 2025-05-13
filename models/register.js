@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Parents phone number is required'],
     trim: true,
-    match: [/^[0-9]{10}$/, 'Enter a valid 10-digit phone number'],
+    match: [/^[0-9]{10}$/, 'Enter a valid 10-digit parents number phone number'],
   },
   rollNo: {
     type: String,
@@ -118,29 +118,29 @@ const userSchema = new mongoose.Schema({
   feeDetails: {
     totalFees: {
       type: Number,
-      required: [true, 'Total fees is required'],
+      required: false,
       min: 0
     },
     remainingFees: {
       type: Number,
-      required: [true, 'Remaining fees is required'],
+      required: false,
       min: 0
     },
     installments: {
       type: Number,
-      required: [true, 'Number of installments is required'],
+      required: false,
       min: 1,
       max: 12
     },
     installmentDetails: [{
       amount: {
         type: Number,
-        required: true,
+        required: false,
         min: 0
       },
       submissionDate: {
         type: Date,
-        required: true
+        required: false
       },
       paid: {
         type: Boolean,
@@ -151,11 +151,10 @@ const userSchema = new mongoose.Schema({
   examResults: [{
     subjectCode: {
       type: String,
-      required: true,
+
     },
     subjectName: {
       type: String,
-      required: true,
     },
     theoryMarks: {
       type: Number,
