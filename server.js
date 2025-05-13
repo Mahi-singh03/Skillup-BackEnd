@@ -16,11 +16,6 @@ import certificateRoutes from './routes/certificateRoutes.js';
 
 import feeRoutes from "./routes/feeRoutes.js"
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> parent of aabcc45 (edit student added)
 const app = express();
 
 // Security middleware
