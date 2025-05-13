@@ -1,9 +1,9 @@
 import express from 'express';
-import { getAllStudentFees, updateStudentFees, getAllStudentFees } from '../controllers/fees.js';
+import { getStudentDetails, getAllStudentFees, updateStudentFees } from '../controllers/fees.js';
 
 const router = express.Router();
 
-router.get('/student', getAllStudentFees);
+router.get('/student', getStudentDetails);
 router.put('/update', updateStudentFees);
 router.get('/getAll', getAllStudentFees);
 
