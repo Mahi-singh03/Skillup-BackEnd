@@ -1,6 +1,6 @@
 import express from 'express';
 import { register, login, getStudentByRollNo, updateStudentPhoto } from '../controllers/registerController.js';
-import { searchStudent, editStudent, addExamResult } from '../controllers/editstudent.js';
+import { searchStudent, editStudent} from '../controllers/editstudent.js';
 
 const router = express.Router();
 router.post('/register', register);
