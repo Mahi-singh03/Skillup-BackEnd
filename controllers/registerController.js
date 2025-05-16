@@ -175,9 +175,8 @@ const register = async (req, res) => {
 // Login a student
 const login = async (req, res) => {
   try {
+    // Extract and validate input
     const { emailAddress, password } = req.body;
-
-    // Validate required fields
     if (!emailAddress || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -191,42 +190,52 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Compare password
+    // Verify password existence
+    if (!student.password) {
+      console.error(`No password set for student: ${emailAddress}`);
+      return res.status(500).json({ error: 'Account error: Password not configured' });
+    }
+
+    // Compare passwords
+    console.log('Comparing passwords:', { provided: password, stored: student.password });
     const isMatch = await bcrypt.compare(password, student.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Generate JWT token
-    if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET is not defined');
+    // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET not configured');
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
     const token = jwt.sign(
       { id: student._id, email: student.emailAddress },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '24h' }
     );
 
     // Prepare response
-    const studentResponse = {
-      ...student.toObject(),
-      password: undefined, // Remove password from response
-      __v: undefined, // Remove version key
-      photo: student.photo
-        ? { url: student.photo.url, message: 'Photo available' }
-        : { message: 'No photo available' },
+    const { password: _, __v, ...studentData } = student.toObject();
+    const response = {
+      message: 'Login successful',
+      student: {
+        ...studentData,
+        photo: student.photo
+          ? { url: student.photo.url, message: 'Photo available' }
+          : { message: 'No photo available' },
+      },
+      token,
     };
 
-    return res.status(200).json({
-      message: 'Login successful',
-      student: studentResponse,
-      token,
-    });
+    return res.status(200).json(response);
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.message,
+    });
   }
 };
 // Update student photo
