@@ -191,10 +191,21 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Verify password is hashed
+    if (!student.password.startsWith('$2')) {
+      console.error('Password not properly hashed for user:', emailAddress);
+      return res.status(500).json({ error: 'Account security issue detected' });
+    }
+
     // Compare password
-    const isMatch = await bcrypt.compare(password, student.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    try {
+      const isMatch = await bcrypt.compare(password, student.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+    } catch (bcryptError) {
+      console.error('Password comparison error:', bcryptError);
+      return res.status(500).json({ error: 'Error verifying password' });
     }
 
     // Generate JWT token
@@ -203,27 +214,40 @@ const login = async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const token = jwt.sign(
-      { id: student._id, email: student.emailAddress },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    try {
+      const token = jwt.sign(
+        { id: student._id, email: student.emailAddress },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-    // Prepare response
-    const studentResponse = {
-      ...student.toObject(),
-      password: undefined, // Remove password from response
-      __v: undefined, // Remove version key
-    };
+      // Prepare response
+      const studentResponse = {
+        ...student.toObject(),
+        password: undefined, // Remove password from response
+        __v: undefined, // Remove version key
+        photo: student.photo
+          ? { url: student.photo.url, message: 'Photo available' }
+          : { message: 'No photo available' },
+      };
 
-    return res.status(200).json({
-      message: 'Login successful',
-      student: studentResponse,
-      token,
-    });
+      return res.status(200).json({
+        message: 'Login successful',
+        student: studentResponse,
+        token,
+      });
+    } catch (jwtError) {
+      console.error('JWT signing error:', jwtError);
+      return res.status(500).json({ error: 'Error generating authentication token' });
+    }
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    // Log the full error stack for debugging
+    console.error('Error stack:', error.stack);
+    return res.status(500).json({ 
+      error: 'Internal Server Error', 
+      details: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
+    });
   }
 };
 
