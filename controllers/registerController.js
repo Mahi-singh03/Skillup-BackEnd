@@ -202,7 +202,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-
+ 
     // Generate JWT
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
