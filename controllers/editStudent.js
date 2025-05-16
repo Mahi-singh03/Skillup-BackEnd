@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Registered_Students from '../models/register.js'; 
+import Registered_Students from '../models/register.js';
 import bcrypt from 'bcryptjs';
 
 // Subject mappings
@@ -63,20 +63,44 @@ const CERTIFICATION_SUBJECTS = {
   'DIPLOMA IN COMPUTER ACCOUNTANCY': DIPLOMA_IN_COMPUTER_ACCOUNTANCY
 };
 
-const editStudent = async (req, res) => {
+export const editStudent = async (req, res) => {
   try {
     const { rollNo, phoneNumber, ...updateData } = req.body;
 
-    // Validate input
+    // Validate input: at least one of rollNo or phoneNumber is required
     if (!rollNo && !phoneNumber) {
       return res.status(400).json({ message: 'Roll number or phone number is required' });
     }
 
+    // Build query based on provided inputs
+    let query = {};
+    if (rollNo && phoneNumber) {
+      query = { rollNo, phoneNumber };
+    } else if (rollNo) {
+      query = { rollNo };
+    } else {
+      query = { phoneNumber };
+    }
+
     // Find student
-    const query = rollNo ? { rollNo } : { phoneNumber };
     let student = await Registered_Students.findOne(query);
     if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+      return res.status(404).json({ 
+        message: rollNo && phoneNumber 
+          ? 'No student found with matching roll number and phone number' 
+          : 'Student not found' 
+      });
+    }
+
+    // If both rollNo and phoneNumber were provided, verify they match the same student
+    if (rollNo && phoneNumber) {
+      const rollNoMatch = student.rollNo === rollNo;
+      const phoneNumberMatch = student.phoneNumber === phoneNumber;
+      if (!rollNoMatch || !phoneNumberMatch) {
+        return res.status(400).json({ 
+          message: 'Provided roll number and phone number do not match the same student' 
+        });
+      }
     }
 
     // Handle password update
