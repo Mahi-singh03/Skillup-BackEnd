@@ -10,23 +10,14 @@ const DIPLOMA_IN_COMPUTER_APPLICATION = {
     "CS-02": "Windows Application: MS Office",
     "CS-03": "Operating System",
     "CS-04": "Web Publisher: Internet Browsing",
-<<<<<<< HEAD
     "CS-05": "Computer Accountency: Tally"
-=======
-    "CS-05": "Computer Accountancy: Tally"
->>>>>>> fcb2752e821be7c99c07ccb8f9d6a69834bbf460
 };
 
 const ADVANCE_DIPLOMA_IN_COMPUTER_APPLICATION = {
     "CS-01": "Basic Computer",
     "CS-02": "Windows Application: MS Office",
-<<<<<<< HEAD
     "CS-03": "Operaing System",
     "CS-05": "Computer Accountency: Tally",
-=======
-    "CS-03": "Operating System",
-    "CS-05": "Computer Accountancy: Tally",
->>>>>>> fcb2752e821be7c99c07ccb8f9d6a69834bbf460
     "CS-06": "Desktop Publishing: Photoshop"
 };
 

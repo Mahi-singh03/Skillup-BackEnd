@@ -1,6 +1,6 @@
 import express from 'express';
 import { register, login, getStudentByRollNo, updateStudentPhoto } from '../controllers/registerController.js';
-// import { searchStudent, editStudent} from '../controllers/editstudent.js';
+import editStudent from "../controllers/editStudent.js"
 
 const router = express.Router();
 router.post('/register', register);
@@ -13,8 +13,7 @@ router.post('/student/login', login);
 router.get('/rollno/:rollNo', getStudentByRollNo);
 router.post('/student/photo', updateStudentPhoto);
 
-// // Edit student routes
-// router.get('/search', searchStudent);
-// router.put('/edit', editStudent);
+
+router.put('/edit', editStudent);
 
 export default router;
