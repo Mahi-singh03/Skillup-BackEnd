@@ -63,7 +63,7 @@ const CERTIFICATION_SUBJECTS = {
   'DIPLOMA IN COMPUTER ACCOUNTANCY': DIPLOMA_IN_COMPUTER_ACCOUNTANCY
 };
 
-export const editStudent = async (req, res) => {
+const editStudent = async (req, res) => {
   try {
     const { rollNo, phoneNumber, ...updateData } = req.body;
 
@@ -185,3 +185,5 @@ export const editStudent = async (req, res) => {
     res.status(400).json({ message: error.message || 'Error updating student' });
   }
 };
+
+export default editStudent;

@@ -13,7 +13,6 @@ import studentVarification from './routes/StudentVarification.js';
 import staffRoutes from "./routes/StaffRoutes.js"
 import adminRoutes from './routes/Admin.js';
 import certificateRoutes from './routes/certificateRoutes.js';
-import editstudent from "./routes/editStudent.js"
 
 import feeRoutes from "./routes/feeRoutes.js"
 
