@@ -214,9 +214,6 @@ const login = async (req, res) => {
       ...student.toObject(),
       password: undefined, // Remove password from response
       __v: undefined, // Remove version key
-      photo: student.photo
-        ? { url: student.photo.url, message: 'Photo available' }
-        : { message: 'No photo available' },
     };
 
     return res.status(200).json({
