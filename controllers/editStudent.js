@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import Registered_Students from '../models/register.js';
 import bcrypt from 'bcryptjs';
 
@@ -69,38 +68,30 @@ export const editStudent = async (req, res) => {
 
     // Validate input: at least one of rollNo or phoneNumber is required
     if (!rollNo && !phoneNumber) {
-      return res.status(400).json({ message: 'Roll number or phone number is required' });
+      return res.status(400).json({ message: 'Either roll number or phone number is required' });
     }
 
-    // Build query based on provided inputs
-    let query = {};
-    if (rollNo && phoneNumber) {
-      query = { rollNo, phoneNumber };
-    } else if (rollNo) {
-      query = { rollNo };
-    } else {
-      query = { phoneNumber };
-    }
+    // Build query using $or for flexibility
+    const query = {
+      $or: [
+        ...(rollNo ? [{ rollNo }] : []),
+        ...(phoneNumber ? [{ phoneNumber }] : [])
+      ]
+    };
 
     // Find student
     let student = await Registered_Students.findOne(query);
     if (!student) {
       return res.status(404).json({ 
-        message: rollNo && phoneNumber 
-          ? 'No student found with matching roll number and phone number' 
-          : 'Student not found' 
+        message: 'No student found with the provided roll number or phone number' 
       });
     }
 
     // If both rollNo and phoneNumber were provided, verify they match the same student
-    if (rollNo && phoneNumber) {
-      const rollNoMatch = student.rollNo === rollNo;
-      const phoneNumberMatch = student.phoneNumber === phoneNumber;
-      if (!rollNoMatch || !phoneNumberMatch) {
-        return res.status(400).json({ 
-          message: 'Provided roll number and phone number do not match the same student' 
-        });
-      }
+    if (rollNo && phoneNumber && (student.rollNo !== rollNo || student.phoneNumber !== phoneNumber)) {
+      return res.status(400).json({ 
+        message: 'Provided roll number and phone number do not match the same student' 
+      });
     }
 
     // Handle password update
@@ -116,7 +107,7 @@ export const editStudent = async (req, res) => {
         // Generate new installment details if provided
         const amountPerInstallment = Math.floor(totalFees / installments);
         const remainingAmount = totalFees % installments;
-        const joining = updateData.joiningDate || student.joiningDate;
+        const joining = updateData.joiningDate || student.joiningDate || new Date();
 
         updateData.feeDetails.installmentDetails = Array.from({ length: installments }, (_, index) => {
           const submissionDate = new Date(joining);
@@ -193,10 +184,10 @@ export const editStudent = async (req, res) => {
       }
     }
 
-    // Update student
+    // Update student with all provided fields
     student = await Registered_Students.findOneAndUpdate(
-      query,
-      { $set: updateData },
+      { _id: student._id },
+      { $set: { ...updateData } },
       { new: true, runValidators: true }
     );
 
@@ -205,7 +196,7 @@ export const editStudent = async (req, res) => {
       data: student
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error updating student:', error);
     res.status(400).json({ message: error.message || 'Error updating student' });
   }
 };
