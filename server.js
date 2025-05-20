@@ -17,7 +17,6 @@ import certificateRoutes from './routes/certificateRoutes.js';
 import feeRoutes from "./routes/feeRoutes.js"
 
 const app = express();
-import cors from 'cors';
 // Security middleware
 app.use(helmet());
 app.use(cors());
