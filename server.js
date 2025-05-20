@@ -17,7 +17,7 @@ import certificateRoutes from './routes/certificateRoutes.js';
 import feeRoutes from "./routes/feeRoutes.js"
 
 const app = express();
-
+import cors from 'cors';
 // Security middleware
 app.use(helmet());
 app.use(cors());
@@ -53,6 +53,9 @@ app.use('/api/staff', staffRoutes)
 app.use('/api/admin', adminRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/fees', feeRoutes);
+
+// Add CORS specifically for Cloudinary route
+app.use('/api/cloudinary-images', cors());
 
 // 404 handler
 app.use((req, res) => {
