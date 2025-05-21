@@ -53,9 +53,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/fees', feeRoutes);
 
-// Add CORS specifically for Cloudinary route
-app.use('/api/cloudinary-images', cors());
-
 // 404 handler
 app.use((req, res) => {
   errorResponse(res, 'Route not found', 404);

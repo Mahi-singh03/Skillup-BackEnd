@@ -26,6 +26,9 @@ router.get('/cloudinary-images', async (req, res) => {
       publicId: resource.public_id
     }));
 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.json({ images });
   } catch (error) {
     console.error('Cloudinary API Error:', error);
